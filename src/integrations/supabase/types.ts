@@ -14,7 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          icon: string | null
+          id: string
+          is_custom: boolean
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          icon?: string | null
+          id?: string
+          is_custom?: boolean
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          icon?: string | null
+          id?: string
+          is_custom?: boolean
+          name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      habit_logs: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          habit_id: string
+          id: string
+          notes: string | null
+          progress_value: number | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          habit_id: string
+          id?: string
+          notes?: string | null
+          progress_value?: number | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          notes?: string | null
+          progress_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          archived: boolean
+          category_id: string | null
+          created_at: string
+          current_stage: number
+          habit_stages: Json
+          id: string
+          name: string
+          streak: number
+          target_count: number | null
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          category_id?: string | null
+          created_at?: string
+          current_stage?: number
+          habit_stages?: Json
+          id?: string
+          name: string
+          streak?: number
+          target_count?: number | null
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          category_id?: string | null
+          created_at?: string
+          current_stage?: number
+          habit_stages?: Json
+          id?: string
+          name?: string
+          streak?: number
+          target_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habits_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_confirmations: {
+        Row: {
+          confirmed: boolean
+          conversation_id: string | null
+          created_at: string
+          id: string
+          parsed_habits: Json | null
+          user_id: string
+        }
+        Insert: {
+          confirmed?: boolean
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          parsed_habits?: Json | null
+          user_id: string
+        }
+        Update: {
+          confirmed?: boolean
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          parsed_habits?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone_number: string | null
+          preferred_call_time: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          preferred_call_time?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          preferred_call_time?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
