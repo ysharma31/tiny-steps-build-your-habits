@@ -54,8 +54,22 @@ const DashboardPage = () => {
       .from("profiles")
       .select("display_name")
       .eq("user_id", userId)
-      .single();
-    setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
+      .maybeSingle();
+
+    const profileName = profile?.display_name?.trim() || "";
+    const metadataName =
+      typeof session.user.user_metadata?.display_name === "string"
+        ? session.user.user_metadata.display_name.trim()
+        : "";
+    const resolvedDisplayName = profileName || metadataName || session.user.email?.split("@")[0] || "there";
+    setDisplayName(resolvedDisplayName);
+
+    if (!profileName && metadataName) {
+      await supabase
+        .from("profiles")
+        .update({ display_name: metadataName })
+        .eq("user_id", userId);
+    }
 
     // Load habits
     const { data: habitsData } = await supabase
