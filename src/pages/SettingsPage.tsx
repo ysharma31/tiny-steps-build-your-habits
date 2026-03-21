@@ -124,8 +124,41 @@ const SettingsPage = () => {
               {initial}
             </div>
             <div className="flex-1 space-y-2">
-              <Input placeholder="Display name" className="font-body" value={displayName} readOnly />
-              <Input placeholder="Phone number" type="tel" className="font-body" value={phone} readOnly />
+              <Input
+                placeholder="Display name"
+                className="font-body"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                onBlur={async () => {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) return;
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update({ display_name: displayName.trim() || null })
+                    .eq("user_id", session.user.id);
+                  if (!error) {
+                    toast({ title: "Saved", description: "Display name updated." });
+                  }
+                }}
+              />
+              <Input
+                placeholder="Phone number"
+                type="tel"
+                className="font-body"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onBlur={async () => {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) return;
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update({ phone_number: phone.trim() || null })
+                    .eq("user_id", session.user.id);
+                  if (!error) {
+                    toast({ title: "Saved", description: "Phone number updated." });
+                  }
+                }}
+              />
             </div>
           </div>
         </CardContent>
