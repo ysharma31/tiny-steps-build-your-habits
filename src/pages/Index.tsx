@@ -13,6 +13,7 @@ const mockHabits = [
   {
     id: "1",
     name: "Morning Workout",
+    goalText: "Today: 15 min walk",
     stageLabel: "Stage 1 · 15 min walk",
     streak: 5,
     progressPercent: 60,
@@ -24,6 +25,7 @@ const mockHabits = [
   {
     id: "2",
     name: "Reading",
+    goalText: "Today: 20 pages",
     stageLabel: "Stage 2 · 20 pages",
     streak: 12,
     progressPercent: 100,
