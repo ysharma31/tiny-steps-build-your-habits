@@ -193,7 +193,24 @@ const SettingsPage = () => {
           <h2 className="text-lg font-heading font-semibold">Daily Check-in</h2>
           <div className="flex items-center justify-between">
             <Label className="font-body text-sm">Nova calls me every day at</Label>
-            <Input type="time" defaultValue="09:00" className="w-32 font-body text-sm" />
+            <Input
+              type="time"
+              value={callTime}
+              onChange={async (e) => {
+                const newTime = e.target.value;
+                setCallTime(newTime);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                const { error } = await supabase
+                  .from("profiles")
+                  .update({ preferred_call_time: newTime + ":00" })
+                  .eq("user_id", session.user.id);
+                if (!error) {
+                  toast({ title: "Saved", description: "Call time updated." });
+                }
+              }}
+              className="w-32 font-body text-sm"
+            />
           </div>
           <p className="text-xs text-muted-foreground font-body">
             Nova will call you daily at the selected time
