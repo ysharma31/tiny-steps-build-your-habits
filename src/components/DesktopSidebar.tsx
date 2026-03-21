@@ -13,12 +13,8 @@ const DesktopSidebar = () => {
       <div className="flex flex-col h-full px-4 py-6">
         {/* Logo */}
         <div className="mb-8 px-2">
-          <h1 className="text-2xl font-heading font-bold text-foreground">
-            🌱 Tiny Steps
-          </h1>
-          <p className="text-xs text-muted-foreground font-body mt-1">
-            One tiny step at a time.
-          </p>
+          <h1 className="text-2xl font-heading font-bold text-foreground">🌱 Tiny Steps</h1>
+          <p className="text-xs text-muted-foreground font-body mt-1">Build good habits, one step at a time.</p>
         </div>
 
         {/* Nav links */}
@@ -30,9 +26,7 @@ const DesktopSidebar = () => {
               end={to === "/"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body font-medium transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  isActive ? "bg-primary text-primary-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent"
                 }`
               }
             >
@@ -44,12 +38,8 @@ const DesktopSidebar = () => {
 
         {/* Nova info */}
         <div className="mt-auto px-2 py-3 rounded-lg bg-sidebar-accent">
-          <p className="text-xs text-muted-foreground font-body">
-            📞 Call Nova
-          </p>
-          <p className="text-sm font-body font-medium text-foreground">
-            +1 (509) 692-5293
-          </p>
+          <p className="text-xs text-muted-foreground font-body">📞 Call Nova</p>
+          <p className="text-sm font-body font-medium text-foreground">+1 (509) 692-5293</p>
         </div>
       </div>
     </aside>
