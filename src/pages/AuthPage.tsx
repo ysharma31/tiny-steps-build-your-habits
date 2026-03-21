@@ -12,6 +12,7 @@ const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   
 
   useEffect(() => {
@@ -54,12 +55,24 @@ const AuthPage = () => {
     setError(null);
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
+      const trimmedDisplayName = displayName.trim();
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            display_name: trimmedDisplayName || undefined,
+          },
+        },
       });
+
       if (error) {
         setError(error.message);
+      } else if (trimmedDisplayName && data.user) {
+        await supabase
+          .from("profiles")
+          .update({ display_name: trimmedDisplayName })
+          .eq("user_id", data.user.id);
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
@@ -90,6 +103,23 @@ const AuthPage = () => {
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-warm-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="displayName" className="font-body text-sm text-foreground">
+                  Name
+                </Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  placeholder="e.g. Yoshita"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  className="font-body"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="font-body text-sm text-foreground">
@@ -143,7 +173,11 @@ const AuthPage = () => {
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               type="button"
-              onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+                if (isSignUp) setDisplayName("");
+              }}
               className="text-primary font-medium hover:underline"
             >
               {isSignUp ? "Sign in" : "Create account"}
