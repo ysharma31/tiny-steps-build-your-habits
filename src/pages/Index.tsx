@@ -197,7 +197,12 @@ const DashboardPage = () => {
         : `${Math.min(h.streak, advDays)} of ${advDays} days — ${pct}% to Stage ${h.current_stage + 2}`,
       isFinal,
       loggedToday: loggedIds.has(h.id),
-      weekDays: [null, null, null, null, null, null, null] as (boolean | null)[],
+      weekDays: weekDates.map((date) => {
+        const today = new Date().toISOString().split("T")[0];
+        if (date > today) return null; // future
+        const log = weekLogs.find((l) => l.habit_id === h.id && l.date === date);
+        return log?.completed ?? false;
+      }),
     };
   });
 

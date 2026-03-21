@@ -44,6 +44,10 @@ const HabitCard = ({ habit, onLog }: HabitProps) => {
     }, 400);
   };
 
+  // Determine today's index in the week (0=Mon, 6=Sun)
+  const todayDow = new Date().getDay();
+  const todayIndex = todayDow === 0 ? 6 : todayDow - 1;
+
   return (
     <Card className="shadow-warm overflow-hidden rounded-2xl">
       <CardContent className="p-5">
@@ -78,26 +82,34 @@ const HabitCard = ({ habit, onLog }: HabitProps) => {
           </p>
         </div>
 
-        {/* Week strip */}
+        {/* 7-day week strip */}
         <div className="flex items-center justify-between mb-5 px-1">
-          {dayLabels.map((label, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <span className="text-[10px] text-muted-foreground font-body uppercase">
-                {label}
-              </span>
-              <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs transition-colors ${
-                  habit.weekDays[i] === true
-                    ? "bg-primary text-primary-foreground"
-                    : habit.weekDays[i] === false
-                    ? "bg-muted text-muted-foreground"
-                    : "border-2 border-border"
-                }`}
-              >
-                {habit.weekDays[i] === true && <Check className="h-3.5 w-3.5" />}
+          {dayLabels.map((label, i) => {
+            const val = habit.weekDays[i];
+            // If today was just logged, override to show completed
+            const isToday = i === todayIndex;
+            const effectiveVal = isToday && habit.loggedToday ? true : val;
+
+            return (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="text-[10px] text-muted-foreground font-body uppercase">
+                  {label}
+                </span>
+                <div
+                  className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-body transition-colors ${
+                    effectiveVal === true
+                      ? "bg-primary text-primary-foreground"
+                      : effectiveVal === false
+                      ? "bg-[#D3D1C7] text-muted-foreground"
+                      : "border-2 border-border"
+                  }`}
+                >
+                  {effectiveVal === true && <Check className="h-3.5 w-3.5" />}
+                  {effectiveVal === false && <span className="text-[10px] opacity-60">—</span>}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Log button / Logged state */}
