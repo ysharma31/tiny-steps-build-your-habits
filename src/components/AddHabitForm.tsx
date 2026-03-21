@@ -52,9 +52,30 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     return errs.length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    // TODO: save to Supabase
+    setSaveError(false);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from("habits").insert({
+      user_id: session.user.id,
+      name: name.trim(),
+      habit_stages: stages.map((s) => ({
+        goal: s.goal,
+        advanceAfterDays: s.isFinal ? null : s.advanceAfterDays,
+        isFinal: s.isFinal,
+      })),
+      current_stage: 0,
+      streak: 0,
+    });
+
+    if (error) {
+      setSaveError(true);
+      return;
+    }
+
     onClose();
   };
 
