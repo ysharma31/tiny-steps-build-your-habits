@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ALTER COLUMN preferred_call_time SET DEFAULT '21:00:00';
