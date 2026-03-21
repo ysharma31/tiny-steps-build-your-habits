@@ -51,7 +51,7 @@ const DashboardPage = () => {
         .select("*")
         .eq("user_id", userId)
         .eq("archived", false);
-      setHabits((habitsData as HabitRow[]) || []);
+      setHabits((habitsData as unknown as HabitRow[]) || []);
 
       // Load today's logs
       const today = new Date().toISOString().split("T")[0];
