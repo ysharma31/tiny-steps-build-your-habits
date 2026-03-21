@@ -69,7 +69,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
         advanceAfterDays: s.isFinal ? null : s.advanceAfterDays,
         isFinal: s.isFinal,
       })),
-      current_stage: 0,
+      current_stage: startingStage,
       streak: 0,
     });
 
