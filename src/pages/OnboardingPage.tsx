@@ -93,6 +93,23 @@ const OnboardingPage = () => {
               Start tiny. Change everything.
             </h1>
 
+            <div className="text-left mb-4">
+              <Label
+                htmlFor="displayName"
+                className="font-body text-sm font-medium text-foreground mb-2 block"
+              >
+                Nova, your habits coach, is waiting to see you! What should Nova call you?
+              </Label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="e.g. Yoshita"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="h-12 text-base font-body"
+              />
+            </div>
+
             <div className="text-left mb-6">
               <Label
                 htmlFor="phone"
