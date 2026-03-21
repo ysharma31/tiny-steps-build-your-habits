@@ -249,7 +249,7 @@ const DashboardPage = () => {
 
       {/* Add habit */}
       {showAddForm ? (
-        <AddHabitForm onClose={() => setShowAddForm(false)} />
+        <AddHabitForm onClose={() => { setShowAddForm(false); loadHabits(); }} />
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
