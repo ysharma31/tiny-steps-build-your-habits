@@ -100,11 +100,12 @@ serve(async (req) => {
       clawdtalkFailed = true;
     }
 
-    // If ClawdTalk failed, return fallback
+    // If ClawdTalk failed, return fallback with reason
     if (clawdtalkFailed) {
       return new Response(
         JSON.stringify({
           fallback: true,
+          no_conversation: true,
           habits: activeHabits.map((h: any) => ({
             habit_id: h.id,
             habit_name: h.name,
@@ -118,6 +119,7 @@ serve(async (req) => {
           mood: "neutral",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
       );
     }
 
