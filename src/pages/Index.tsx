@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Plus } from "lucide-react";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
+import { processHabitProgression, checkAllHabitsProgression } from "@/lib/progression";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface HabitRow {
   id: string;
@@ -13,6 +15,13 @@ interface HabitRow {
   current_stage: number;
   streak: number;
   habit_stages: { goal: string; advanceAfterDays: number | null; isFinal: boolean }[];
+}
+
+interface CelebrationInfo {
+  habitId: string;
+  habitName: string;
+  newStage: number;
+  newGoal: string;
 }
 
 const getGreeting = () => {
@@ -29,43 +38,63 @@ const DashboardPage = () => {
   const [displayName, setDisplayName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [celebrations, setCelebrations] = useState<CelebrationInfo[]>([]);
+
+  const loadHabits = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const userId = session.user.id;
+
+    // Load profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", userId)
+      .single();
+    setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
+
+    // Load habits
+    const { data: habitsData } = await supabase
+      .from("habits")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("archived", false);
+    const habitsTyped = (habitsData as unknown as HabitRow[]) || [];
+
+    // Run progression check on load (handles regression for missed days)
+    await checkAllHabitsProgression(
+      userId,
+      habitsTyped.map((h) => ({
+        id: h.id,
+        current_stage: h.current_stage,
+        habit_stages: h.habit_stages,
+      }))
+    );
+
+    // Re-fetch habits after progression updates
+    const { data: updatedHabits } = await supabase
+      .from("habits")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("archived", false);
+    setHabits((updatedHabits as unknown as HabitRow[]) || []);
+
+    // Load today's logs
+    const today = new Date().toISOString().split("T")[0];
+    const { data: logs } = await supabase
+      .from("habit_logs")
+      .select("habit_id")
+      .eq("user_id", userId)
+      .eq("date", today)
+      .eq("completed", true);
+    setLoggedIds(new Set((logs ?? []).map((l) => l.habit_id)));
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const userId = session.user.id;
-
-      // Load profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("user_id", userId)
-        .single();
-      setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
-
-      // Load habits
-      const { data: habitsData } = await supabase
-        .from("habits")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("archived", false);
-      setHabits((habitsData as unknown as HabitRow[]) || []);
-
-      // Load today's logs
-      const today = new Date().toISOString().split("T")[0];
-      const { data: logs } = await supabase
-        .from("habit_logs")
-        .select("habit_id")
-        .eq("user_id", userId)
-        .eq("date", today)
-        .eq("completed", true);
-      setLoggedIds(new Set((logs ?? []).map((l) => l.habit_id)));
-
-      setLoading(false);
-    };
-    load();
+    loadHabits();
   }, []);
 
   const handleLog = async (id: string) => {
@@ -78,6 +107,43 @@ const DashboardPage = () => {
       { onConflict: "habit_id,date" }
     );
     setLoggedIds((prev) => new Set(prev).add(id));
+
+    // Run progression after logging
+    const habit = habits.find((h) => h.id === id);
+    if (habit) {
+      const result = await processHabitProgression(
+        id,
+        session.user.id,
+        habit.current_stage,
+        habit.habit_stages
+      );
+
+      // Update local state with new streak/stage
+      setHabits((prev) =>
+        prev.map((h) =>
+          h.id === id
+            ? { ...h, streak: result.streak, current_stage: result.currentStage }
+            : h
+        )
+      );
+
+      // Show celebration if advanced
+      if (result.advanced && result.celebration) {
+        setCelebrations((prev) => [
+          ...prev,
+          {
+            habitId: id,
+            habitName: habit.name,
+            newStage: result.celebration!.newStage,
+            newGoal: result.celebration!.newGoal,
+          },
+        ]);
+      }
+    }
+  };
+
+  const dismissCelebration = (habitId: string) => {
+    setCelebrations((prev) => prev.filter((c) => c.habitId !== habitId));
   };
 
   const completedToday = loggedIds.size;
@@ -127,6 +193,19 @@ const DashboardPage = () => {
 
       {/* Daily progress */}
       <Progress value={progressPercent} className="h-3 mb-8" />
+
+      {/* Celebration banners */}
+      {celebrations.map((c) => (
+        <Alert
+          key={c.habitId}
+          className="mb-4 border-primary/30 bg-primary/5 cursor-pointer"
+          onClick={() => dismissCelebration(c.habitId)}
+        >
+          <AlertDescription className="font-body text-sm text-foreground">
+            🎉 You've unlocked Stage {c.newStage} for <strong>{c.habitName}</strong>. Your new goal: {c.newGoal}. Nova will tell you all about it on your next call.
+          </AlertDescription>
+        </Alert>
+      ))}
 
       {/* Habit cards */}
       <div className="space-y-4 mb-6">
