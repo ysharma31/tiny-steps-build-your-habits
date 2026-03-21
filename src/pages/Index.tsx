@@ -13,6 +13,7 @@ const mockHabits = [
   {
     id: "1",
     name: "Morning Workout",
+    goalText: "Today: 15 min walk",
     stageLabel: "Stage 1 · 15 min walk",
     streak: 5,
     progressPercent: 60,
