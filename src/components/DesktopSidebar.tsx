@@ -36,11 +36,6 @@ const DesktopSidebar = () => {
           ))}
         </nav>
 
-        {/* Nova info */}
-        <div className="mt-auto px-2 py-3 rounded-lg bg-sidebar-accent">
-          <p className="text-xs text-muted-foreground font-body">📞 Call Nova</p>
-          <p className="text-sm font-body font-medium text-foreground">+1 (509) 692-5293</p>
-        </div>
       </div>
     </aside>
   );

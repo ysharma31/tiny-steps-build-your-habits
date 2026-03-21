@@ -92,7 +92,7 @@ const DashboardPage = () => {
       {/* Nova CTA */}
       <Button
         className="w-full h-14 mt-8 text-base font-body animate-pulse-soft"
-        onClick={() => {/* TODO: navigate to calling */}}
+        onClick={() => navigate("/calling")}
       >
         📞 Call me now — Nova is ready
       </Button>
