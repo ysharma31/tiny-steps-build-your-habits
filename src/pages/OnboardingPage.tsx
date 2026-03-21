@@ -17,6 +17,7 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -36,17 +37,13 @@ const OnboardingPage = () => {
     }
 
     const userId = session.user.id;
-    const displayName =
-      session.user.user_metadata?.full_name ||
-      session.user.user_metadata?.name ||
-      session.user.email?.split("@")[0] ||
-      "";
+    const nameToSave = displayName.trim() || session.user.email?.split("@")[0] || "";
 
     // Upsert profile (creates if trigger didn't fire, updates if it did)
     await supabase
       .from("profiles")
       .upsert(
-        { user_id: userId, phone_number: phone, display_name: displayName },
+        { user_id: userId, phone_number: phone, display_name: nameToSave },
         { onConflict: "user_id" }
       );
 
@@ -96,6 +93,23 @@ const OnboardingPage = () => {
               Start tiny. Change everything.
             </h1>
 
+            <div className="text-left mb-4">
+              <Label
+                htmlFor="displayName"
+                className="font-body text-sm font-medium text-foreground mb-2 block"
+              >
+                Nova, your habits coach, is waiting to see you! What should Nova call you?
+              </Label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="e.g. Yoshita"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="h-12 text-base font-body"
+              />
+            </div>
+
             <div className="text-left mb-6">
               <Label
                 htmlFor="phone"
@@ -115,7 +129,7 @@ const OnboardingPage = () => {
 
             <Button
               onClick={() => setStep(2)}
-              disabled={!phone.trim()}
+              disabled={!displayName.trim() || !phone.trim()}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
               Next

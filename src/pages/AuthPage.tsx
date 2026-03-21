@@ -12,7 +12,7 @@ const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -57,9 +57,6 @@ const AuthPage = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { full_name: fullName },
-        },
       });
       if (error) {
         setError(error.message);
@@ -93,22 +90,6 @@ const AuthPage = () => {
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-warm-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="font-body text-sm text-foreground">
-                  Full Name
-                </Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Yoshita Sharma"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className="font-body"
-                />
-              </div>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="font-body text-sm text-foreground">
