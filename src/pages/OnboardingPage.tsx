@@ -43,7 +43,7 @@ const OnboardingPage = () => {
     await supabase
       .from("profiles")
       .upsert(
-        { user_id: userId, phone_number: phone, display_name: displayName },
+        { user_id: userId, phone_number: phone, display_name: nameToSave },
         { onConflict: "user_id" }
       );
 
