@@ -178,6 +178,12 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
           </div>
         )}
 
+        {saveError && (
+          <p className="text-xs font-body" style={{ color: "#D4A843" }}>
+            Couldn't save your habit — please try again.
+          </p>
+        )}
+
         <Button onClick={handleSave} className="w-full h-11 font-body">
           Save Habit
         </Button>
