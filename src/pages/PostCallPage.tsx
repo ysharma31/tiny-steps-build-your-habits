@@ -17,6 +17,7 @@ interface ParsedHabit {
 
 interface PostCallData {
   fallback: boolean;
+  no_conversation?: boolean;
   habits: ParsedHabit[];
   summary: string;
   tomorrows_goals: string;
