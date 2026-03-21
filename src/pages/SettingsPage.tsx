@@ -6,28 +6,97 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+
+interface HabitStage {
+  goal: string;
+  advanceAfterDays: number | null;
+  isFinal: boolean;
+}
+
+interface HabitWithStages {
+  id: string;
+  name: string;
+  current_stage: number;
+  habit_stages: HabitStage[];
+}
 
 const SettingsPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [habits, setHabits] = useState<HabitWithStages[]>([]);
+  const [editedStages, setEditedStages] = useState<Record<string, HabitStage[]>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase
+
+      const { data: profile } = await supabase
         .from("profiles")
         .select("display_name, phone_number")
         .eq("user_id", session.user.id)
         .single();
-      if (data) {
-        setDisplayName(data.display_name || "");
-        setPhone(data.phone_number || "");
+      if (profile) {
+        setDisplayName(profile.display_name || "");
+        setPhone(profile.phone_number || "");
       }
+
+      const { data: habitsData } = await supabase
+        .from("habits")
+        .select("id, name, current_stage, habit_stages")
+        .eq("user_id", session.user.id)
+        .eq("archived", false);
+
+      const typed = (habitsData as unknown as HabitWithStages[]) || [];
+      setHabits(typed);
+
+      const initial: Record<string, HabitStage[]> = {};
+      typed.forEach((h) => {
+        initial[h.id] = h.habit_stages.map((s) => ({ ...s }));
+      });
+      setEditedStages(initial);
     };
-    loadProfile();
+    load();
   }, []);
+
+  const handleStageChange = (habitId: string, stageIndex: number, value: number) => {
+    setEditedStages((prev) => {
+      const stages = [...(prev[habitId] || [])];
+      stages[stageIndex] = { ...stages[stageIndex], advanceAfterDays: value };
+      return { ...prev, [habitId]: stages };
+    });
+  };
+
+  const handleSaveStages = async () => {
+    setSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setSaving(false); return; }
+
+    let failed = false;
+    for (const habit of habits) {
+      const stages = editedStages[habit.id];
+      if (!stages) continue;
+
+      const { error } = await supabase
+        .from("habits")
+        .update({ habit_stages: stages as unknown as any })
+        .eq("id", habit.id)
+        .eq("user_id", session.user.id);
+
+      if (error) failed = true;
+    }
+
+    setSaving(false);
+    if (failed) {
+      toast({ title: "Error", description: "Couldn't save changes — please try again.", variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: "Got it — Nova will adjust your pace." });
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -57,6 +126,62 @@ const SettingsPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Habit Stages Editor */}
+      {habits.length > 0 && (
+        <Card className="shadow-warm">
+          <CardContent className="p-5 space-y-5">
+            <h2 className="text-lg font-heading font-semibold">Habit Stages</h2>
+            <p className="text-xs text-muted-foreground font-body">
+              Adjust how many days each stage takes before advancing.
+            </p>
+
+            {habits.map((habit) => (
+              <div key={habit.id} className="space-y-2">
+                <h3 className="text-sm font-heading font-semibold text-foreground">{habit.name}</h3>
+                <div className="space-y-1.5 pl-2">
+                  {(editedStages[habit.id] || habit.habit_stages).map((stage, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <span className="text-xs font-body text-muted-foreground w-16 shrink-0">
+                        Stage {idx + 1}
+                      </span>
+                      <span className="text-sm font-body text-foreground flex-1 truncate">
+                        {stage.goal}
+                      </span>
+                      {stage.isFinal ? (
+                        <span className="text-xs font-body text-muted-foreground italic whitespace-nowrap">
+                          Final stage — no advancement
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Input
+                            type="number"
+                            min={1}
+                            className="w-16 h-8 text-sm font-body text-center"
+                            value={stage.advanceAfterDays ?? ""}
+                            onChange={(e) =>
+                              handleStageChange(habit.id, idx, parseInt(e.target.value) || 1)
+                            }
+                          />
+                          <span className="text-xs font-body text-muted-foreground">days</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <Button
+              className="w-full font-body"
+              onClick={handleSaveStages}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Save stage settings"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Daily check-in */}
       <Card className="shadow-warm">
