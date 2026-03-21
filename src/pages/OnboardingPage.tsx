@@ -37,11 +37,7 @@ const OnboardingPage = () => {
     }
 
     const userId = session.user.id;
-    const displayName =
-      session.user.user_metadata?.full_name ||
-      session.user.user_metadata?.name ||
-      session.user.email?.split("@")[0] ||
-      "";
+    const nameToSave = displayName.trim() || session.user.email?.split("@")[0] || "";
 
     // Upsert profile (creates if trigger didn't fire, updates if it did)
     await supabase
