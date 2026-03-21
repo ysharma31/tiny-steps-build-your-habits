@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,7 +23,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     { goal: "", advanceAfterDays: 5, isFinal: false },
   ]);
   const [errors, setErrors] = useState<string[]>([]);
-
+  const [saveError, setSaveError] = useState(false);
   const addStage = () => {
     setStages([...stages, { goal: "", advanceAfterDays: 5, isFinal: false }]);
   };
@@ -51,9 +52,30 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     return errs.length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    // TODO: save to Supabase
+    setSaveError(false);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from("habits").insert({
+      user_id: session.user.id,
+      name: name.trim(),
+      habit_stages: stages.map((s) => ({
+        goal: s.goal,
+        advanceAfterDays: s.isFinal ? null : s.advanceAfterDays,
+        isFinal: s.isFinal,
+      })),
+      current_stage: 0,
+      streak: 0,
+    });
+
+    if (error) {
+      setSaveError(true);
+      return;
+    }
+
     onClose();
   };
 
@@ -154,6 +176,12 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
               </p>
             ))}
           </div>
+        )}
+
+        {saveError && (
+          <p className="text-xs font-body" style={{ color: "#D4A843" }}>
+            Couldn't save your habit — please try again.
+          </p>
         )}
 
         <Button onClick={handleSave} className="w-full h-11 font-body">
