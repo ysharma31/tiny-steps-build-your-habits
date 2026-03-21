@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import HABITS, { type HabitKey } from "@/lib/habits";
 
 const HABIT_TILES: { id: HabitKey; emoji: string }[] = [
@@ -21,6 +22,8 @@ const OnboardingPage = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<HabitKey[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleHabit = (id: HabitKey) => {
     setSelectedHabits((prev) =>
@@ -28,12 +31,47 @@ const OnboardingPage = () => {
     );
   };
 
-  const handleFinish = () => {
-    // Save to React state via sessionStorage — no Supabase yet
-    sessionStorage.setItem(
-      "onboarding",
-      JSON.stringify({ name, phone, selectedHabits })
-    );
+  const handleFinish = async () => {
+    setLoading(true);
+    setError(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Not signed in.");
+      setLoading(false);
+      return;
+    }
+
+    // Update profile with display_name and phone_number
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ display_name: name, phone_number: phone })
+      .eq("id", user.id);
+
+    if (profileError) {
+      setError(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Insert one habits row per selected habit
+    const habitRows = selectedHabits.map((key) => ({
+      user_id: user.id,
+      name: HABITS[key].label,
+      habit_stages: HABITS[key].stages as unknown as object[],
+      current_stage: 0,
+      streak: 0,
+      archived: false,
+    }));
+
+    const { error: habitsError } = await supabase.from("habits").insert(habitRows);
+
+    if (habitsError) {
+      setError(habitsError.message);
+      setLoading(false);
+      return;
+    }
+
     navigate("/");
   };
 
@@ -114,7 +152,7 @@ const OnboardingPage = () => {
             <p className="font-body text-muted-foreground text-center mb-6">
               Pick the ones that matter to you
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-8">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               {HABIT_TILES.map(({ id, emoji }) => (
                 <button
                   key={id}
@@ -130,12 +168,15 @@ const OnboardingPage = () => {
                 </button>
               ))}
             </div>
+            {error && (
+              <p className="font-body text-sm text-destructive text-center mb-4">{error}</p>
+            )}
             <Button
               onClick={handleFinish}
-              disabled={selectedHabits.length === 0}
+              disabled={selectedHabits.length === 0 || loading}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
-              Let's go 🌱
+              {loading ? "Saving…" : "Let's go 🌱"}
             </Button>
           </div>
         )}
