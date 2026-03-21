@@ -28,6 +28,7 @@ const PostCallPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [noConversation, setNoConversation] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<PostCallData | null>(null);
