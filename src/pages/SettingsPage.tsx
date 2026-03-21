@@ -38,12 +38,15 @@ const SettingsPage = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, phone_number")
+        .select("display_name, phone_number, preferred_call_time")
         .eq("user_id", session.user.id)
         .single();
       if (profile) {
         setDisplayName(profile.display_name || "");
         setPhone(profile.phone_number || "");
+        if (profile.preferred_call_time) {
+          setCallTime(profile.preferred_call_time.slice(0, 5));
+        }
       }
 
       const { data: habitsData } = await supabase
