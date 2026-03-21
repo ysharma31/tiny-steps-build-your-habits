@@ -39,6 +39,8 @@ const DashboardPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [celebrations, setCelebrations] = useState<CelebrationInfo[]>([]);
+  const [weekLogs, setWeekLogs] = useState<{ habit_id: string; date: string; completed: boolean }[]>([]);
+  const [weekDates, setWeekDates] = useState<string[]>([]);
 
   const loadHabits = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -80,8 +82,34 @@ const DashboardPage = () => {
       .eq("archived", false);
     setHabits((updatedHabits as unknown as HabitRow[]) || []);
 
+    // Compute current week Mon–Sun
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const weekDates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      weekDates.push(d.toISOString().split("T")[0]);
+    }
+
+    // Load week logs for all habits
+    const { data: weekLogs } = await supabase
+      .from("habit_logs")
+      .select("habit_id, date, completed")
+      .eq("user_id", userId)
+      .gte("date", weekDates[0])
+      .lte("date", weekDates[6]);
+
+    setWeekLogs(weekLogs ?? []);
+    setWeekDates(weekDates);
+
     // Load today's logs
-    const today = new Date().toISOString().split("T")[0];
+    const today = now.toISOString().split("T")[0];
     const { data: logs } = await supabase
       .from("habit_logs")
       .select("habit_id")
@@ -169,7 +197,12 @@ const DashboardPage = () => {
         : `${Math.min(h.streak, advDays)} of ${advDays} days — ${pct}% to Stage ${h.current_stage + 2}`,
       isFinal,
       loggedToday: loggedIds.has(h.id),
-      weekDays: [null, null, null, null, null, null, null] as (boolean | null)[],
+      weekDays: weekDates.map((date) => {
+        const today = new Date().toISOString().split("T")[0];
+        if (date > today) return null; // future
+        const log = weekLogs.find((l) => l.habit_id === h.id && l.date === date);
+        return log?.completed ?? false;
+      }),
     };
   });
 
