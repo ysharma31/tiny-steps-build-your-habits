@@ -16,7 +16,7 @@ const CallingPage = () => {
       <div className="flex gap-4 w-full max-w-sm mb-8">
         {/* Option 1 — I'll call Nova */}
         <a
-          href="tel:+15096925293"
+          href={`tel:${import.meta.env.VITE_NOVA_PHONE_NUMBER}`}
           className="flex-1 flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-border bg-card hover:border-primary/40 transition-colors"
         >
           <span className="text-3xl">📞</span>
