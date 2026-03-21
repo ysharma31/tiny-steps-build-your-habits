@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
 import { processHabitProgression, checkAllHabitsProgression } from "@/lib/progression";
@@ -217,9 +218,14 @@ const DashboardPage = () => {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Greeting */}
-      <h1 className="text-2xl font-heading font-bold text-foreground mb-1">
-        {getGreeting()}, {displayName} 👋
-      </h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl font-heading font-bold text-foreground">
+          {getGreeting()}, {displayName} 👋
+        </h1>
+        <Link to="/settings" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Settings className="h-5 w-5" />
+        </Link>
+      </div>
       <p className="text-muted-foreground font-body text-sm mb-6">
         {completedToday} of {habits.length} habits done today
       </p>
