@@ -1,127 +1,104 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import HABITS, { type HabitKey } from "@/lib/habits";
 
-const HABIT_TILES: { id: HabitKey; emoji: string }[] = [
-  { id: "workout",    emoji: "🏃" },
-  { id: "reading",    emoji: "📚" },
-  { id: "screenTime", emoji: "📵" },
-  { id: "singing",    emoji: "🎵" },
-  { id: "aiTools",    emoji: "🤖" },
+const predefinedHabits = [
+  { id: "workout", name: "Workout", emoji: "🏃" },
+  { id: "reading", name: "Reading", emoji: "📚" },
+  { id: "screen-time", name: "Screen Time", emoji: "📵" },
+  { id: "singing", name: "Singing Practice", emoji: "🎵" },
+  { id: "ai-tools", name: "AI Tools", emoji: "🤖" },
 ];
-
-const TOTAL_STEPS = 3;
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedHabits, setSelectedHabits] = useState<HabitKey[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const toggleHabit = (id: HabitKey) => {
+  const toggleHabit = (id: string) => {
     setSelectedHabits((prev) =>
       prev.includes(id) ? prev.filter((h) => h !== id) : [...prev, id]
     );
   };
 
   const handleFinish = async () => {
-    setLoading(true);
-    setError(null);
+    setSaving(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not signed in.");
-      setLoading(false);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth", { replace: true });
       return;
     }
 
-    // Update profile with display_name and phone_number
-    const { error: profileError } = await supabase
+    const userId = session.user.id;
+    const displayName =
+      session.user.user_metadata?.full_name ||
+      session.user.user_metadata?.name ||
+      session.user.email?.split("@")[0] ||
+      "";
+
+    // Update profile with phone number and display name
+    await supabase
       .from("profiles")
-      .update({ display_name: name, phone_number: phone })
-      .eq("id", user.id);
+      .update({ phone_number: phone, display_name: displayName })
+      .eq("user_id", userId);
 
-    if (profileError) {
-      setError(profileError.message);
-      setLoading(false);
-      return;
+    // Get predefined categories
+    const { data: categories } = await supabase
+      .from("categories")
+      .select("id, name")
+      .is("user_id", null);
+
+    // Map selected habits to category IDs and insert
+    const categoryMap = new Map(
+      (categories ?? []).map((c) => [c.name.toLowerCase(), c.id])
+    );
+
+    const habitNameMap: Record<string, string> = {
+      workout: "Workout",
+      reading: "Reading",
+      "screen-time": "Screen Time",
+      singing: "Singing Practice",
+      "ai-tools": "AI Tools",
+    };
+
+    const habitsToInsert = selectedHabits.map((habitId) => {
+      const name = habitNameMap[habitId] || habitId;
+      const categoryId = categoryMap.get(name.toLowerCase()) || null;
+      return {
+        user_id: userId,
+        name,
+        category_id: categoryId,
+        habit_stages: [{ goal: `Daily ${name.toLowerCase()}`, advanceAfterDays: 5, isFinal: false }],
+      };
+    });
+
+    if (habitsToInsert.length > 0) {
+      await supabase.from("habits").insert(habitsToInsert);
     }
 
-    // Insert one habits row per selected habit
-    const habitRows = selectedHabits.map((key) => ({
-      user_id: user.id,
-      name: HABITS[key].label,
-      habit_stages: HABITS[key].stages as unknown as object[],
-      current_stage: 0,
-      streak: 0,
-      archived: false,
-    }));
-
-    const { error: habitsError } = await supabase.from("habits").insert(habitRows);
-
-    if (habitsError) {
-      setError(habitsError.message);
-      setLoading(false);
-      return;
-    }
-
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: "#FAF7F2" }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-md">
-
-        {/* Step 1 — Name */}
         {step === 1 && (
-          <div>
-            <h1 className="font-heading text-3xl font-bold text-foreground text-center mb-8">
+          <div className="text-center">
+            <h1 className="font-heading text-3xl font-bold text-foreground mb-8">
               Start tiny. Change everything.
             </h1>
-            <div className="flex flex-col gap-1.5 mb-6">
-              <Label htmlFor="name" className="font-body text-sm font-medium text-foreground">
-                What should Nova call you?
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Your first name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-12 text-base font-body"
-              />
-            </div>
-            <Button
-              onClick={() => setStep(2)}
-              disabled={!name.trim()}
-              className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
-            >
-              Next
-            </Button>
-          </div>
-        )}
 
-        {/* Step 2 — Phone */}
-        {step === 2 && (
-          <div>
-            <h1 className="font-heading text-3xl font-bold text-foreground text-center mb-2">
-              Start tiny. Change everything.
-            </h1>
-            <p className="font-body text-muted-foreground text-center mb-8">
-              Hey {name} 👋
-            </p>
-            <div className="flex flex-col gap-1.5 mb-6">
-              <Label htmlFor="phone" className="font-body text-sm font-medium text-foreground">
+            <div className="text-left mb-6">
+              <Label
+                htmlFor="phone"
+                className="font-body text-sm font-medium text-foreground mb-2 block"
+              >
                 Nova will call you here
               </Label>
               <Input
@@ -133,8 +110,9 @@ const OnboardingPage = () => {
                 className="h-12 text-base font-body"
               />
             </div>
+
             <Button
-              onClick={() => setStep(3)}
+              onClick={() => setStep(2)}
               disabled={!phone.trim()}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
@@ -143,8 +121,7 @@ const OnboardingPage = () => {
           </div>
         )}
 
-        {/* Step 3 — Habit selection */}
-        {step === 3 && (
+        {step === 2 && (
           <div>
             <h2 className="font-heading text-2xl font-bold text-foreground text-center mb-2">
               Which habits are you building?
@@ -152,38 +129,37 @@ const OnboardingPage = () => {
             <p className="font-body text-muted-foreground text-center mb-6">
               Pick the ones that matter to you
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {HABIT_TILES.map(({ id, emoji }) => (
+
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              {predefinedHabits.map((habit) => (
                 <button
-                  key={id}
-                  onClick={() => toggleHabit(id)}
+                  key={habit.id}
+                  onClick={() => toggleHabit(habit.id)}
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all font-body ${
-                    selectedHabits.includes(id)
+                    selectedHabits.includes(habit.id)
                       ? "border-primary bg-primary/10 text-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/40"
                   }`}
                 >
-                  <span className="text-3xl">{emoji}</span>
-                  <span className="text-sm font-medium">{HABITS[id].label}</span>
+                  <span className="text-3xl">{habit.emoji}</span>
+                  <span className="text-sm font-medium">{habit.name}</span>
                 </button>
               ))}
             </div>
-            {error && (
-              <p className="font-body text-sm text-destructive text-center mb-4">{error}</p>
-            )}
+
             <Button
               onClick={handleFinish}
-              disabled={selectedHabits.length === 0 || loading}
+              disabled={selectedHabits.length === 0 || saving}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
-              {loading ? "Saving…" : "Let's go 🌱"}
+              {saving ? "Saving…" : "Let's go 🌱"}
             </Button>
           </div>
         )}
 
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mt-6">
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((s) => (
+          {[1, 2].map((s) => (
             <div
               key={s}
               className={`h-2 w-2 rounded-full transition-colors ${
@@ -192,7 +168,6 @@ const OnboardingPage = () => {
             />
           ))}
         </div>
-
       </div>
     </div>
   );

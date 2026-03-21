@@ -14,109 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
+      categories: {
         Row: {
+          icon: string | null
           id: string
-          display_name: string
-          avatar_url: string | null
-          phone_number: string | null
-          preferred_call_time: string
-          created_at: string
+          is_custom: boolean
+          name: string
+          user_id: string | null
         }
         Insert: {
-          id: string
-          display_name: string
-          avatar_url?: string | null
-          phone_number?: string | null
-          preferred_call_time?: string
-          created_at?: string
+          icon?: string | null
+          id?: string
+          is_custom?: boolean
+          name: string
+          user_id?: string | null
         }
         Update: {
+          icon?: string | null
           id?: string
-          display_name?: string
-          avatar_url?: string | null
-          phone_number?: string | null
-          preferred_call_time?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      habits: {
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          current_stage: number
-          streak: number
-          habit_stages: Json
-          archived: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          current_stage?: number
-          streak?: number
-          habit_stages: Json
-          archived?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
+          is_custom?: boolean
           name?: string
-          current_stage?: number
-          streak?: number
-          habit_stages?: Json
-          archived?: boolean
-          created_at?: string
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "habits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       habit_logs: {
         Row: {
-          id: string
-          habit_id: string
-          user_id: string
-          date: string
           completed: boolean
-          notes: string | null
           created_at: string
+          date: string
+          habit_id: string
+          id: string
+          notes: string | null
+          progress_value: number | null
+          user_id: string
         }
         Insert: {
-          id?: string
-          habit_id: string
-          user_id: string
-          date: string
           completed?: boolean
-          notes?: string | null
           created_at?: string
+          date?: string
+          habit_id: string
+          id?: string
+          notes?: string | null
+          progress_value?: number | null
+          user_id: string
         }
         Update: {
-          id?: string
-          habit_id?: string
-          user_id?: string
-          date?: string
           completed?: boolean
-          notes?: string | null
           created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          notes?: string | null
+          progress_value?: number | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -126,49 +77,108 @@ export type Database = {
             referencedRelation: "habits"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      habits: {
+        Row: {
+          archived: boolean
+          category_id: string | null
+          created_at: string
+          current_stage: number
+          habit_stages: Json
+          id: string
+          name: string
+          streak: number
+          target_count: number | null
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          category_id?: string | null
+          created_at?: string
+          current_stage?: number
+          habit_stages?: Json
+          id?: string
+          name: string
+          streak?: number
+          target_count?: number | null
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          category_id?: string | null
+          created_at?: string
+          current_stage?: number
+          habit_stages?: Json
+          id?: string
+          name?: string
+          streak?: number
+          target_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "habit_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "habits_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "categories"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       pending_confirmations: {
         Row: {
-          id: string
-          user_id: string
-          conversation_id: string | null
-          parsed_habits: Json | null
           confirmed: boolean
+          conversation_id: string | null
           created_at: string
+          id: string
+          parsed_habits: Json | null
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          conversation_id?: string | null
-          parsed_habits?: Json | null
           confirmed?: boolean
+          conversation_id?: string | null
           created_at?: string
+          id?: string
+          parsed_habits?: Json | null
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          conversation_id?: string | null
-          parsed_habits?: Json | null
           confirmed?: boolean
+          conversation_id?: string | null
           created_at?: string
+          id?: string
+          parsed_habits?: Json | null
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "pending_confirmations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone_number: string | null
+          preferred_call_time: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          preferred_call_time?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          preferred_call_time?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -211,13 +221,13 @@ export type Tables<
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-    ? R
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
     : never
-  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -237,12 +247,12 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Insert: infer I
-    }
-    ? I
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
     : never
-  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -262,12 +272,12 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Update: infer U
-    }
-    ? U
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
     : never
-  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -283,8 +293,8 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -300,8 +310,8 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

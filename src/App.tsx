@@ -20,6 +20,7 @@ const queryClient = new QueryClient();
 
 const AuthGuard = () => {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [hasHabits, setHasHabits] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -30,6 +31,57 @@ const AuthGuard = () => {
       setSession(session);
     });
 
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setHasHabits(undefined);
+      return;
+    }
+
+    supabase
+      .from("habits")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id)
+      .then(({ count }) => {
+        setHasHabits((count ?? 0) > 0);
+      });
+  }, [session]);
+
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="font-body text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (hasHabits === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="font-body text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  return <AppLayout />;
+};
+
+const OnboardingGuard = () => {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -45,7 +97,7 @@ const AuthGuard = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <AppLayout />;
+  return <OnboardingPage />;
 };
 
 const App = () => (
@@ -56,7 +108,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/onboarding" element={<OnboardingGuard />} />
           <Route element={<AuthGuard />}>
             <Route path="/" element={<Index />} />
             <Route path="/history" element={<HabitDetailPage />} />

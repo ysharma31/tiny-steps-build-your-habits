@@ -1,93 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Plus } from "lucide-react";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
-import { supabase } from "@/integrations/supabase/client";
 
-// Shape expected by HabitCard
-interface HabitCardData {
+interface HabitRow {
   id: string;
   name: string;
-  goalText: string;
-  stageLabel: string;
+  current_stage: number;
   streak: number;
-  progressPercent: number;
-  progressLabel: string;
-  isFinal: boolean;
-  loggedToday: boolean;
-  weekDays: (boolean | null)[];
-}
-
-// Shape of a stage in habit_stages jsonb
-interface HabitStage {
-  goal: string;
-  advanceAfterDays: number | null;
-  isFinal?: boolean;
-}
-
-const TODAY = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-
-// Build the 7-element weekDays array (Mon–Sun of current week)
-function buildWeekDays(logs: { date: string; completed: boolean }[]): (boolean | null)[] {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun … 6=Sat
-  // Shift so week starts on Monday
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + mondayOffset);
-
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
-    if (dateStr > TODAY) return null; // future
-    const log = logs.find((l) => l.date === dateStr);
-    return log ? log.completed : false;
-  });
-}
-
-function toCardData(
-  habit: {
-    id: string;
-    name: string;
-    current_stage: number;
-    streak: number;
-    habit_stages: unknown;
-  },
-  logs: { date: string; completed: boolean }[]
-): HabitCardData {
-  const stages = (habit.habit_stages as HabitStage[]) ?? [];
-  const stageIndex = Math.min(habit.current_stage, stages.length - 1);
-  const stage = stages[stageIndex] ?? { goal: "", advanceAfterDays: null };
-  const isFinal = !!stage.isFinal || stageIndex === stages.length - 1;
-
-  const loggedToday = logs.some((l) => l.date === TODAY && l.completed);
-
-  // Progress within current stage
-  const advanceDays = stage.advanceAfterDays ?? null;
-  // Count completed logs since stage started (approximate: last N days)
-  const recentLogs = logs.filter((l) => l.completed).length;
-  const progressPercent =
-    advanceDays != null ? Math.min(100, Math.round((recentLogs / advanceDays) * 100)) : 100;
-  const progressLabel = isFinal
-    ? "You've mastered this level! Keep it up."
-    : `${recentLogs} of ${advanceDays} days — ${progressPercent}% to Stage ${stageIndex + 2}`;
-
-  return {
-    id: habit.id,
-    name: habit.name,
-    goalText: `Today: ${stage.goal}`,
-    stageLabel: `Stage ${stageIndex + 1} · ${stage.goal}`,
-    streak: habit.streak,
-    progressPercent,
-    progressLabel,
-    isFinal,
-    loggedToday,
-    weekDays: buildWeekDays(logs),
-  };
+  habit_stages: { goal: string; advanceAfterDays: number | null; isFinal: boolean }[];
 }
 
 const getGreeting = () => {
@@ -99,83 +24,96 @@ const getGreeting = () => {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const [cards, setCards] = useState<HabitCardData[]>([]);
-  const [displayName, setDisplayName] = useState("there");
+  const [habits, setHabits] = useState<HabitRow[]>([]);
+  const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set());
+  const [displayName, setDisplayName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboard();
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const userId = session.user.id;
+
+      // Load profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId)
+        .single();
+      setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
+
+      // Load habits
+      const { data: habitsData } = await supabase
+        .from("habits")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("archived", false);
+      setHabits((habitsData as unknown as HabitRow[]) || []);
+
+      // Load today's logs
+      const today = new Date().toISOString().split("T")[0];
+      const { data: logs } = await supabase
+        .from("habit_logs")
+        .select("habit_id")
+        .eq("user_id", userId)
+        .eq("date", today)
+        .eq("completed", true);
+      setLoggedIds(new Set((logs ?? []).map((l) => l.habit_id)));
+
+      setLoading(false);
+    };
+    load();
   }, []);
 
-  const loadDashboard = async () => {
-    setLoading(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-
-    // Load profile for display name
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .single();
-    if (profile?.display_name) setDisplayName(profile.display_name);
-
-    // Load active habits
-    const { data: habits } = await supabase
-      .from("habits")
-      .select("id, name, current_stage, streak, habit_stages")
-      .eq("user_id", user.id)
-      .eq("archived", false)
-      .order("created_at", { ascending: true });
-
-    if (!habits || habits.length === 0) { setLoading(false); return; }
-
-    // Load habit_logs for this week for all habits
-    const habitIds = habits.map((h) => h.id);
-    const monday = (() => {
-      const d = new Date();
-      const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
-      d.setDate(d.getDate() + offset);
-      return d.toISOString().slice(0, 10);
-    })();
-
-    const { data: logs } = await supabase
-      .from("habit_logs")
-      .select("habit_id, date, completed")
-      .in("habit_id", habitIds)
-      .gte("date", monday)
-      .lte("date", TODAY);
-
-    const logsByHabit: Record<string, { date: string; completed: boolean }[]> = {};
-    for (const log of logs ?? []) {
-      if (!logsByHabit[log.habit_id]) logsByHabit[log.habit_id] = [];
-      logsByHabit[log.habit_id].push({ date: log.date, completed: log.completed });
-    }
-
-    setCards(habits.map((h) => toCardData(h, logsByHabit[h.id] ?? [])));
-    setLoading(false);
-  };
-
   const handleLog = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    // Upsert a completed log for today (ignore duplicate errors)
+    const today = new Date().toISOString().split("T")[0];
     await supabase.from("habit_logs").upsert(
-      { habit_id: id, user_id: user.id, date: TODAY, completed: true },
+      { habit_id: id, user_id: session.user.id, date: today, completed: true },
       { onConflict: "habit_id,date" }
     );
-
-    // Optimistically mark as logged in UI
-    setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, loggedToday: true } : c))
-    );
+    setLoggedIds((prev) => new Set(prev).add(id));
   };
 
-  const completedToday = cards.filter((c) => c.loggedToday).length;
-  const progressPercent = cards.length > 0 ? (completedToday / cards.length) * 100 : 0;
+  const completedToday = loggedIds.size;
+  const progressPercent = habits.length > 0 ? (completedToday / habits.length) * 100 : 0;
+
+  // Build display data for HabitCard
+  const habitCards = habits.map((h) => {
+    const stage = h.habit_stages?.[h.current_stage];
+    const stageLabel = stage ? `Stage ${h.current_stage + 1} · ${stage.goal}` : "";
+    const isFinal = stage?.isFinal ?? false;
+    const advDays = stage?.advanceAfterDays ?? 5;
+    const pct = isFinal ? 100 : Math.min(100, Math.round((h.streak / advDays) * 100));
+
+    return {
+      id: h.id,
+      name: h.name,
+      goalText: stage ? `Today: ${stage.goal}` : "",
+      stageLabel,
+      streak: h.streak,
+      progressPercent: pct,
+      progressLabel: isFinal
+        ? "You've mastered this level! Keep it up."
+        : `${Math.min(h.streak, advDays)} of ${advDays} days — ${pct}% to Stage ${h.current_stage + 2}`,
+      isFinal,
+      loggedToday: loggedIds.has(h.id),
+      weekDays: [null, null, null, null, null, null, null] as (boolean | null)[],
+    };
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="font-body text-muted-foreground">Loading habits…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -184,30 +122,22 @@ const DashboardPage = () => {
         {getGreeting()}, {displayName} 👋
       </h1>
       <p className="text-muted-foreground font-body text-sm mb-6">
-        {completedToday} of {cards.length} habits done today
+        {completedToday} of {habits.length} habits done today
       </p>
 
       {/* Daily progress */}
       <Progress value={progressPercent} className="h-3 mb-8" />
 
       {/* Habit cards */}
-      {loading ? (
-        <p className="font-body text-muted-foreground text-center py-12">Loading habits…</p>
-      ) : cards.length === 0 ? (
-        <p className="font-body text-muted-foreground text-center py-12">
-          No habits yet — add one below.
-        </p>
-      ) : (
-        <div className="space-y-4 mb-6">
-          {cards.map((card) => (
-            <HabitCard key={card.id} habit={card} onLog={handleLog} />
-          ))}
-        </div>
-      )}
+      <div className="space-y-4 mb-6">
+        {habitCards.map((habit) => (
+          <HabitCard key={habit.id} habit={habit} onLog={handleLog} />
+        ))}
+      </div>
 
       {/* Add habit */}
       {showAddForm ? (
-        <AddHabitForm onClose={() => { setShowAddForm(false); loadDashboard(); }} />
+        <AddHabitForm onClose={() => setShowAddForm(false)} />
       ) : (
         <button
           onClick={() => setShowAddForm(true)}

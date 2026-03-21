@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,6 +8,34 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 
 const SettingsPage = () => {
+  const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, phone_number")
+        .eq("user_id", session.user.id)
+        .single();
+      if (data) {
+        setDisplayName(data.display_name || "");
+        setPhone(data.phone_number || "");
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth", { replace: true });
+  };
+
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : "?";
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-heading font-bold text-foreground">
@@ -16,12 +47,12 @@ const SettingsPage = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-lg font-heading font-semibold">Profile</h2>
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl">
-              🌱
+            <div className="h-14 w-14 rounded-full bg-primary flex items-center justify-center text-xl font-heading font-bold text-primary-foreground shrink-0">
+              {initial}
             </div>
             <div className="flex-1 space-y-2">
-              <Input placeholder="Display name" className="font-body" />
-              <Input placeholder="Phone number" type="tel" className="font-body" />
+              <Input placeholder="Display name" className="font-body" value={displayName} readOnly />
+              <Input placeholder="Phone number" type="tel" className="font-body" value={phone} readOnly />
             </div>
           </div>
         </CardContent>
@@ -61,7 +92,7 @@ const SettingsPage = () => {
       </Card>
 
       {/* Sign out */}
-      <Button variant="outline" className="w-full font-body">
+      <Button variant="outline" className="w-full font-body" onClick={handleSignOut}>
         Sign out
       </Button>
     </div>
