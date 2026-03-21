@@ -26,6 +26,7 @@ const SettingsPage = () => {
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [callTime, setCallTime] = useState("21:00");
   const [habits, setHabits] = useState<HabitWithStages[]>([]);
   const [editedStages, setEditedStages] = useState<Record<string, HabitStage[]>>({});
   const [saving, setSaving] = useState(false);
