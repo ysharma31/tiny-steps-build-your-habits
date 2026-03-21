@@ -25,6 +25,7 @@ const mockHabits = [
   {
     id: "2",
     name: "Reading",
+    goalText: "Today: 20 pages",
     stageLabel: "Stage 2 · 20 pages",
     streak: 12,
     progressPercent: 100,
