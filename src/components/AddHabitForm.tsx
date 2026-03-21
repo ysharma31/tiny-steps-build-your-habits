@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 
 interface Stage {
@@ -22,6 +23,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const [stages, setStages] = useState<Stage[]>([
     { goal: "", advanceAfterDays: 5, isFinal: false },
   ]);
+  const [startingStage, setStartingStage] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [saveError, setSaveError] = useState(false);
   const addStage = () => {
@@ -37,6 +39,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const removeStage = (index: number) => {
     if (stages.length > 1) {
       setStages((prev) => prev.filter((_, i) => i !== index));
+      setStartingStage((prev) => Math.min(prev, stages.length - 2));
     }
   };
 
@@ -67,7 +70,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
         advanceAfterDays: s.isFinal ? null : s.advanceAfterDays,
         isFinal: s.isFinal,
       })),
-      current_stage: 0,
+      current_stage: startingStage,
       streak: 0,
     });
 
@@ -167,6 +170,27 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
             <Plus className="h-3 w-3" /> Add another stage
           </button>
         </div>
+
+        {stages.length > 1 && (
+          <div className="space-y-2">
+            <Label className="font-body text-sm font-medium">Starting stage</Label>
+            <Select
+              value={String(startingStage)}
+              onValueChange={(v) => setStartingStage(parseInt(v))}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((_, i) => (
+                  <SelectItem key={i} value={String(i)} className="font-body">
+                    Stage {i + 1}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {errors.length > 0 && (
           <div className="space-y-1">
