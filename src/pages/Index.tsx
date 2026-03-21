@@ -80,8 +80,34 @@ const DashboardPage = () => {
       .eq("archived", false);
     setHabits((updatedHabits as unknown as HabitRow[]) || []);
 
+    // Compute current week Mon–Sun
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const weekDates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      weekDates.push(d.toISOString().split("T")[0]);
+    }
+
+    // Load week logs for all habits
+    const { data: weekLogs } = await supabase
+      .from("habit_logs")
+      .select("habit_id, date, completed")
+      .eq("user_id", userId)
+      .gte("date", weekDates[0])
+      .lte("date", weekDates[6]);
+
+    setWeekLogs(weekLogs ?? []);
+    setWeekDates(weekDates);
+
     // Load today's logs
-    const today = new Date().toISOString().split("T")[0];
+    const today = now.toISOString().split("T")[0];
     const { data: logs } = await supabase
       .from("habit_logs")
       .select("habit_id")
