@@ -52,6 +52,13 @@ const PostCallPage = () => {
       if (response.error) throw new Error(response.error.message);
 
       const result = response.data as PostCallData;
+
+      if (result.no_conversation) {
+        setNoConversation(true);
+        setLoading(false);
+        return;
+      }
+
       setData(result);
 
       // Pre-select based on AI confidence
