@@ -170,6 +170,27 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
           </button>
         </div>
 
+        {stages.length > 1 && (
+          <div className="space-y-2">
+            <Label className="font-body text-sm font-medium">Starting stage</Label>
+            <Select
+              value={String(startingStage)}
+              onValueChange={(v) => setStartingStage(parseInt(v))}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((_, i) => (
+                  <SelectItem key={i} value={String(i)} className="font-body">
+                    Stage {i + 1}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {errors.length > 0 && (
           <div className="space-y-1">
             {errors.map((err, i) => (
