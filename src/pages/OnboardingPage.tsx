@@ -42,11 +42,13 @@ const OnboardingPage = () => {
       session.user.email?.split("@")[0] ||
       "";
 
-    // Update profile with phone number and display name
+    // Upsert profile (creates if trigger didn't fire, updates if it did)
     await supabase
       .from("profiles")
-      .update({ phone_number: phone, display_name: displayName })
-      .eq("user_id", userId);
+      .upsert(
+        { user_id: userId, phone_number: phone, display_name: displayName },
+        { onConflict: "user_id" }
+      );
 
     // Get predefined categories
     const { data: categories } = await supabase
