@@ -42,6 +42,7 @@ const getGreeting = () => {
 };
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const [habits, setHabits] = useState(mockHabits);
   const [showAddForm, setShowAddForm] = useState(false);
   const name = "Yoshita"; // TODO: from profile
