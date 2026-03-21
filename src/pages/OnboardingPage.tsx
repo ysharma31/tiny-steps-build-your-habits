@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const predefinedHabits = [
   { id: "workout", name: "Workout", emoji: "🏃" },
@@ -11,6 +13,7 @@ const predefinedHabits = [
 ];
 
 const OnboardingPage = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
@@ -21,28 +24,47 @@ const OnboardingPage = () => {
     );
   };
 
+  const handleFinish = () => {
+    // Save to React state (no Supabase yet)
+    const onboardingData = { phone, selectedHabits };
+    // Store in sessionStorage so dashboard can read it if needed
+    sessionStorage.setItem("onboarding", JSON.stringify(onboardingData));
+    navigate("/");
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: "#FAF7F2" }}
+    >
       <div className="w-full max-w-md">
         {step === 1 && (
           <div className="text-center">
-            <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
+            <h1 className="font-heading text-3xl font-bold text-foreground mb-8">
               Start tiny. Change everything.
             </h1>
-            <p className="text-muted-foreground font-body mb-8">
-              Nova will call you here
-            </p>
-            <Input
-              type="tel"
-              placeholder="+1 (555) 123-4567"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="mb-6 h-12 text-center text-lg font-body"
-            />
+
+            <div className="text-left mb-6">
+              <Label
+                htmlFor="phone"
+                className="font-body text-sm font-medium text-foreground mb-2 block"
+              >
+                Nova will call you here
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+1 (555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-12 text-base font-body"
+              />
+            </div>
+
             <Button
               onClick={() => setStep(2)}
               disabled={!phone.trim()}
-              className="w-full h-12 font-body text-base"
+              className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
               Next
             </Button>
@@ -51,18 +73,19 @@ const OnboardingPage = () => {
 
         {step === 2 && (
           <div>
-            <h2 className="text-2xl font-heading font-bold text-foreground text-center mb-2">
+            <h2 className="font-heading text-2xl font-bold text-foreground text-center mb-2">
               Which habits are you building?
             </h2>
-            <p className="text-muted-foreground font-body text-center mb-6">
+            <p className="font-body text-muted-foreground text-center mb-6">
               Pick the ones that matter to you
             </p>
+
             <div className="grid grid-cols-2 gap-3 mb-8">
               {predefinedHabits.map((habit) => (
                 <button
                   key={habit.id}
                   onClick={() => toggleHabit(habit.id)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all font-body ${
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all font-body ${
                     selectedHabits.includes(habit.id)
                       ? "border-primary bg-primary/10 text-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/40"
@@ -73,10 +96,11 @@ const OnboardingPage = () => {
                 </button>
               ))}
             </div>
+
             <Button
-              onClick={() => {/* TODO: save and navigate */}}
+              onClick={handleFinish}
               disabled={selectedHabits.length === 0}
-              className="w-full h-12 font-body text-base"
+              className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
               Let's go 🌱
             </Button>
