@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -41,6 +42,7 @@ const getGreeting = () => {
 };
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const [habits, setHabits] = useState(mockHabits);
   const [showAddForm, setShowAddForm] = useState(false);
   const name = "Yoshita"; // TODO: from profile
@@ -90,7 +92,7 @@ const DashboardPage = () => {
       {/* Nova CTA */}
       <Button
         className="w-full h-14 mt-8 text-base font-body animate-pulse-soft"
-        onClick={() => {/* TODO: navigate to calling */}}
+        onClick={() => navigate("/calling")}
       >
         📞 Call me now — Nova is ready
       </Button>
