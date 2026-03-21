@@ -120,7 +120,6 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-      );
     }
 
     // STEP 2: Parse with Anthropic
