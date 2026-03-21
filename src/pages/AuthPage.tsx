@@ -57,9 +57,6 @@ const AuthPage = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { full_name: fullName },
-        },
       });
       if (error) {
         setError(error.message);
