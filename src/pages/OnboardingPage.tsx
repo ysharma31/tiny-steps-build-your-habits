@@ -129,7 +129,7 @@ const OnboardingPage = () => {
 
             <Button
               onClick={() => setStep(2)}
-              disabled={!phone.trim()}
+              disabled={!displayName.trim() || !phone.trim()}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
               Next
