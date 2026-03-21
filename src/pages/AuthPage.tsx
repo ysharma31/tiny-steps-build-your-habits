@@ -93,6 +93,23 @@ const AuthPage = () => {
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-warm-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="font-body text-sm text-foreground">
+                  Full Name
+                </Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Yoshita Sharma"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="font-body"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="font-body text-sm text-foreground">
                 Email
