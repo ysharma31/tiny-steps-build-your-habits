@@ -17,6 +17,7 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
