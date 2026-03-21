@@ -202,12 +202,29 @@ const PostCallPage = () => {
     );
   }
 
+  if (noConversation) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+        <span className="text-4xl mb-4 block">🤔</span>
+        <p className="font-heading text-lg font-semibold text-foreground mb-2">
+          No recent conversation with Nova
+        </p>
+        <p className="font-body text-sm text-muted-foreground mb-6 max-w-xs">
+          It looks like you haven't chatted with Nova yet. Give her a call first, then come back here!
+        </p>
+        <Button variant="outline" onClick={() => navigate("/")}>
+          Back to dashboard
+        </Button>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="max-w-2xl mx-auto text-center py-20">
         <p className="font-body text-muted-foreground">Something went wrong. Please try again.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/calling")}>
-          Go back
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
+          Back to dashboard
         </Button>
       </div>
     );
