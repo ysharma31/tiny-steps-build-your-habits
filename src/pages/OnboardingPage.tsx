@@ -39,13 +39,11 @@ const OnboardingPage = () => {
     const userId = session.user.id;
     const nameToSave = displayName.trim() || session.user.email?.split("@")[0] || "";
 
-    // Upsert profile (creates if trigger didn't fire, updates if it did)
+    // Update profile (trigger already created the row on signup)
     await supabase
       .from("profiles")
-      .upsert(
-        { user_id: userId, phone_number: phone, display_name: nameToSave },
-        { onConflict: "user_id" }
-      );
+      .update({ phone_number: phone, display_name: nameToSave })
+      .eq("user_id", userId);
 
     // Get predefined categories
     const { data: categories } = await supabase
