@@ -39,6 +39,8 @@ const DashboardPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [celebrations, setCelebrations] = useState<CelebrationInfo[]>([]);
+  const [weekLogs, setWeekLogs] = useState<{ habit_id: string; date: string; completed: boolean }[]>([]);
+  const [weekDates, setWeekDates] = useState<string[]>([]);
 
   const loadHabits = async () => {
     const { data: { session } } = await supabase.auth.getSession();
