@@ -23,6 +23,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const [stages, setStages] = useState<Stage[]>([
     { goal: "", advanceAfterDays: 5, isFinal: false },
   ]);
+  const [startingStage, setStartingStage] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [saveError, setSaveError] = useState(false);
   const addStage = () => {
