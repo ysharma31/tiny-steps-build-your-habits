@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -41,19 +47,30 @@ const AuthPage = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleGoogleSignIn = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+      }
     }
+
+    setLoading(false);
   };
 
   return (
@@ -71,17 +88,65 @@ const AuthPage = () => {
 
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-warm-lg p-8">
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-body font-medium text-base hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? "Connecting…" : "Sign in with Google"}
-          </button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="font-body text-sm text-foreground">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="font-body"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="font-body text-sm text-foreground">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="font-body"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-xl font-body font-medium text-base"
+            >
+              {loading
+                ? "Please wait…"
+                : isSignUp
+                  ? "Create account"
+                  : "Sign In"}
+            </Button>
+          </form>
 
           {error && (
             <p className="font-body text-sm text-destructive text-center mt-4">{error}</p>
           )}
+
+          <p className="font-body text-sm text-muted-foreground text-center mt-5">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+              className="text-primary font-medium hover:underline"
+            >
+              {isSignUp ? "Sign in" : "Create account"}
+            </button>
+          </p>
         </div>
       </div>
     </div>
