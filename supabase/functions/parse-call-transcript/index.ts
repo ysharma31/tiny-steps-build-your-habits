@@ -21,9 +21,19 @@ serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      supabaseUrl,
+      supabaseKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -90,11 +100,12 @@ serve(async (req) => {
       clawdtalkFailed = true;
     }
 
-    // If ClawdTalk failed, return fallback
+    // If ClawdTalk failed, return fallback with reason
     if (clawdtalkFailed) {
       return new Response(
         JSON.stringify({
           fallback: true,
+          no_conversation: true,
           habits: activeHabits.map((h: any) => ({
             habit_id: h.id,
             habit_name: h.name,
