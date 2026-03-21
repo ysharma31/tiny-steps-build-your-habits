@@ -39,6 +39,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const removeStage = (index: number) => {
     if (stages.length > 1) {
       setStages((prev) => prev.filter((_, i) => i !== index));
+      setStartingStage((prev) => Math.min(prev, stages.length - 2));
     }
   };
 
