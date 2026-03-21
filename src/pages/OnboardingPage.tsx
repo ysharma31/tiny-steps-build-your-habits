@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ const OnboardingPage = () => {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const toggleHabit = (id: string) => {
     setSelectedHabits((prev) =>
@@ -24,19 +26,67 @@ const OnboardingPage = () => {
     );
   };
 
-  const handleFinish = () => {
-    // Save to React state (no Supabase yet)
-    const onboardingData = { phone, selectedHabits };
-    // Store in sessionStorage so dashboard can read it if needed
-    sessionStorage.setItem("onboarding", JSON.stringify(onboardingData));
-    navigate("/");
+  const handleFinish = async () => {
+    setSaving(true);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    const userId = session.user.id;
+    const displayName =
+      session.user.user_metadata?.full_name ||
+      session.user.user_metadata?.name ||
+      session.user.email?.split("@")[0] ||
+      "";
+
+    // Update profile with phone number and display name
+    await supabase
+      .from("profiles")
+      .update({ phone_number: phone, display_name: displayName })
+      .eq("user_id", userId);
+
+    // Get predefined categories
+    const { data: categories } = await supabase
+      .from("categories")
+      .select("id, name")
+      .is("user_id", null);
+
+    // Map selected habits to category IDs and insert
+    const categoryMap = new Map(
+      (categories ?? []).map((c) => [c.name.toLowerCase(), c.id])
+    );
+
+    const habitNameMap: Record<string, string> = {
+      workout: "Workout",
+      reading: "Reading",
+      "screen-time": "Screen Time",
+      singing: "Singing Practice",
+      "ai-tools": "AI Tools",
+    };
+
+    const habitsToInsert = selectedHabits.map((habitId) => {
+      const name = habitNameMap[habitId] || habitId;
+      const categoryId = categoryMap.get(name.toLowerCase()) || null;
+      return {
+        user_id: userId,
+        name,
+        category_id: categoryId,
+        habit_stages: [{ goal: `Daily ${name.toLowerCase()}`, advanceAfterDays: 5, isFinal: false }],
+      };
+    });
+
+    if (habitsToInsert.length > 0) {
+      await supabase.from("habits").insert(habitsToInsert);
+    }
+
+    navigate("/", { replace: true });
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: "#FAF7F2" }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-md">
         {step === 1 && (
           <div className="text-center">
@@ -99,10 +149,10 @@ const OnboardingPage = () => {
 
             <Button
               onClick={handleFinish}
-              disabled={selectedHabits.length === 0}
+              disabled={selectedHabits.length === 0 || saving}
               className="w-full h-12 font-body text-base bg-primary hover:bg-primary/90"
             >
-              Let's go 🌱
+              {saving ? "Saving…" : "Let's go 🌱"}
             </Button>
           </div>
         )}
