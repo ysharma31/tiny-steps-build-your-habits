@@ -14,6 +14,7 @@ const CallingPage = () => {
   const [pageState, setPageState] = useState<PageState>("idle");
   const [userPhone, setUserPhone] = useState<string>("");
   const [countdown, setCountdown] = useState(120);
+  const [scheduledEventId, setScheduledEventId] = useState<string>("");
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load user phone on mount
@@ -74,6 +75,7 @@ const CallingPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      setScheduledEventId(data.event_id || "");
       setPageState("scheduled");
     } catch {
       toast({
@@ -84,7 +86,17 @@ const CallingPage = () => {
     }
   };
 
-  const cancelCall = () => {
+  const cancelCall = async () => {
+    if (scheduledEventId) {
+      try {
+        await supabase.functions.invoke("cancel-call", {
+          body: { event_id: scheduledEventId },
+        });
+      } catch {
+        // best-effort — still reset UI
+      }
+    }
+    setScheduledEventId("");
     setPageState("idle");
     toast({ description: "Call cancelled.", variant: "warning" });
   };
