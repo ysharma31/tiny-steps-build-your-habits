@@ -89,7 +89,17 @@ const CallingPage = () => {
     }
   };
 
-  const cancelCall = () => {
+  const cancelCall = async () => {
+    if (eventId) {
+      try {
+        await supabase.functions.invoke("cancel-call", {
+          body: { event_id: eventId },
+        });
+      } catch {
+        // Even if cancel fails on backend, reset UI
+      }
+    }
+    setEventId(null);
     setPageState("idle");
     toast({ description: "Call cancelled.", variant: "warning" });
   };
