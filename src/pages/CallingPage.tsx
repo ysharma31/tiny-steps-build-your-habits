@@ -78,7 +78,7 @@ const CallingPage = () => {
       console.log("[schedule-call] response:", JSON.stringify(data));
       const eid = data?.data?.event?.id;
       if (eid) setEventId(eid);
-      sessionStorage.setItem("callStartedAt", scheduledAt);
+      sessionStorage.setItem("callStartedAt", new Date().toISOString());
       setPageState("scheduled");
     } catch {
       toast({
