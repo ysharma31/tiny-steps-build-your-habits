@@ -31,6 +31,8 @@ const SettingsPage = () => {
   const [editedStages, setEditedStages] = useState<Record<string, HabitStage[]>>({});
   const [saving, setSaving] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);
+  const [browserEnabled, setBrowserEnabled] = useState(false);
+  const [inAppEnabled, setInAppEnabled] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -288,7 +290,7 @@ const SettingsPage = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">Browser notifications</Label>
-              <Switch />
+              <Switch checked={browserEnabled} onCheckedChange={setBrowserEnabled} />
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">SMS reminder from Nova</Label>
@@ -302,7 +304,7 @@ const SettingsPage = () => {
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">In-app reminder</Label>
-              <Switch />
+              <Switch checked={inAppEnabled} onCheckedChange={setInAppEnabled} />
             </div>
           </div>
         </CardContent>
