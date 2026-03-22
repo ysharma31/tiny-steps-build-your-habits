@@ -79,6 +79,11 @@ const CallingPage = () => {
   };
 
   const cancelCall = async () => {
+    // If we have no event ID, we can't cancel server-side — just update UI
+    if (!scheduledEventId) {
+      setPageState("cancelled");
+      return;
+    }
     try {
       const { error } = await supabase.functions.invoke("cancel-call", {
         body: { event_id: scheduledEventId },
