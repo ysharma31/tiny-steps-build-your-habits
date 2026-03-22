@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 
 interface Stage {
@@ -21,8 +23,9 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const [stages, setStages] = useState<Stage[]>([
     { goal: "", advanceAfterDays: 5, isFinal: false },
   ]);
+  const [startingStage, setStartingStage] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
-
+  const [saveError, setSaveError] = useState(false);
   const addStage = () => {
     setStages([...stages, { goal: "", advanceAfterDays: 5, isFinal: false }]);
   };
@@ -36,6 +39,7 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const removeStage = (index: number) => {
     if (stages.length > 1) {
       setStages((prev) => prev.filter((_, i) => i !== index));
+      setStartingStage((prev) => Math.min(prev, stages.length - 2));
     }
   };
 
@@ -51,9 +55,30 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     return errs.length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    // TODO: save to Supabase
+    setSaveError(false);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from("habits").insert({
+      user_id: session.user.id,
+      name: name.trim(),
+      habit_stages: stages.map((s) => ({
+        goal: s.goal,
+        advanceAfterDays: s.isFinal ? null : s.advanceAfterDays,
+        isFinal: s.isFinal,
+      })),
+      current_stage: startingStage,
+      streak: 0,
+    });
+
+    if (error) {
+      setSaveError(true);
+      return;
+    }
+
     onClose();
   };
 
@@ -146,6 +171,27 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
           </button>
         </div>
 
+        {stages.length > 1 && (
+          <div className="space-y-2">
+            <Label className="font-body text-sm font-medium">Starting stage</Label>
+            <Select
+              value={String(startingStage)}
+              onValueChange={(v) => setStartingStage(parseInt(v))}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((_, i) => (
+                  <SelectItem key={i} value={String(i)} className="font-body">
+                    Stage {i + 1}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {errors.length > 0 && (
           <div className="space-y-1">
             {errors.map((err, i) => (
@@ -154,6 +200,12 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
               </p>
             ))}
           </div>
+        )}
+
+        {saveError && (
+          <p className="text-xs font-body" style={{ color: "#D4A843" }}>
+            Couldn't save your habit — please try again.
+          </p>
         )}
 
         <Button onClick={handleSave} className="w-full h-11 font-body">
