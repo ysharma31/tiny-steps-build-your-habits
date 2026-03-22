@@ -22,6 +22,26 @@ interface HabitWithStages {
   habit_stages: HabitStage[];
 }
 
+// Convert "HH:MM" local time → "HH:MM:00" UTC for DB storage
+const localTimeToUtc = (localHHMM: string): string => {
+  const [h, m] = localHHMM.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  const uh = d.getUTCHours().toString().padStart(2, "0");
+  const um = d.getUTCMinutes().toString().padStart(2, "0");
+  return `${uh}:${um}:00`;
+};
+
+// Convert "HH:MM:00" UTC from DB → "HH:MM" local time for display
+const utcTimeToLocal = (utcHHMMSS: string): string => {
+  const [h, m] = utcHHMMSS.split(":").map(Number);
+  const d = new Date();
+  d.setUTCHours(h, m, 0, 0);
+  const lh = d.getHours().toString().padStart(2, "0");
+  const lm = d.getMinutes().toString().padStart(2, "0");
+  return `${lh}:${lm}`;
+};
+
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,7 +72,7 @@ const SettingsPage = () => {
         setBrowserEnabled(profile.notif_browser ?? false);
         setInAppEnabled(profile.notif_inapp ?? false);
         if (profile.preferred_call_time) {
-          setCallTime(profile.preferred_call_time.slice(0, 5));
+          setCallTime(utcTimeToLocal(profile.preferred_call_time));
         }
       }
 
@@ -276,8 +296,9 @@ const SettingsPage = () => {
                 if (!session) return;
                 const { error } = await supabase
                   .from("profiles")
-                  .update({ preferred_call_time: newTime + ":00" })
-                  .eq("user_id", session.user.id);
+                  .update({ preferred_call_time: localTimeToUtc(newTime) })
+                  .eq("user_id", session.user.id)
+                  .select();
                 if (!error) {
                   toast({ title: "Saved", description: "Call time updated." });
                 }
