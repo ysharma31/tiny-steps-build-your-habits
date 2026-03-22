@@ -86,6 +86,7 @@ const CallingPage = () => {
 
   const cancelCall = () => {
     setPageState("idle");
+    toast({ description: "Call cancelled." });
   };
 
   const handleBackFromCall = () => {
