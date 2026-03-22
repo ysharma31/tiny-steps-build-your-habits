@@ -23,10 +23,10 @@ const CallingPage = () => {
       if (!session) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("phone")
+        .select("phone_number")
         .eq("user_id", session.user.id)
         .maybeSingle();
-      if (profile?.phone) setUserPhone(profile.phone);
+      if (profile?.phone_number) setUserPhone(profile.phone_number);
     };
     load();
   }, []);
