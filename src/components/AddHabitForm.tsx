@@ -62,6 +62,19 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    // Check for duplicate habit name (case-insensitive)
+    const { count } = await supabase
+      .from("habits")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id)
+      .eq("archived", false)
+      .ilike("name", name.trim());
+
+    if (count && count > 0) {
+      setErrors(["A habit with this name already exists"]);
+      return;
+    }
+
     const { error } = await supabase.from("habits").insert({
       user_id: session.user.id,
       name: name.trim(),
