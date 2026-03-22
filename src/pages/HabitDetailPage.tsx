@@ -198,7 +198,33 @@ const HabitDetail = ({ habitId }: { habitId: string }) => {
         >
           <ChevronLeft className="h-4 w-4" /> All habits
         </button>
-        <h1 className="text-2xl font-heading font-bold text-foreground">{habit.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-heading font-bold text-foreground">{habit.name}</h1>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="text-muted-foreground hover:text-destructive transition-colors p-2">
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-heading">Delete "{habit.name}"?</AlertDialogTitle>
+                <AlertDialogDescription className="font-body">
+                  This will permanently delete this habit and all its history. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="font-body">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="font-body bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         {stage && (
           <p className="text-sm text-muted-foreground font-body mt-1">
             Stage {habit.current_stage + 1} · {stage.goal}
