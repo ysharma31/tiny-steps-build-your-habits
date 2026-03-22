@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, Flame, Trophy } from "lucide-react";
+import { ChevronLeft, Flame, Trophy, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface HabitStage {
   goal: string;
@@ -104,10 +116,20 @@ const CalendarHeatmap = ({ logs }: { logs: LogRow[] }) => {
 
 const HabitDetail = ({ habitId }: { habitId: string }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [habit, setHabit] = useState<HabitRow | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [bestStreak, setBestStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const handleDelete = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from("habit_logs").delete().eq("habit_id", habitId).eq("user_id", session.user.id);
+    await supabase.from("habits").delete().eq("id", habitId).eq("user_id", session.user.id);
+    toast({ title: "Deleted", description: `"${habit?.name}" has been removed.` });
+    navigate("/", { replace: true });
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -176,7 +198,33 @@ const HabitDetail = ({ habitId }: { habitId: string }) => {
         >
           <ChevronLeft className="h-4 w-4" /> All habits
         </button>
-        <h1 className="text-2xl font-heading font-bold text-foreground">{habit.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-heading font-bold text-foreground">{habit.name}</h1>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="text-muted-foreground hover:text-destructive transition-colors p-2">
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-heading">Delete "{habit.name}"?</AlertDialogTitle>
+                <AlertDialogDescription className="font-body">
+                  This will permanently delete this habit and all its history. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="font-body">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="font-body bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         {stage && (
           <p className="text-sm text-muted-foreground font-body mt-1">
             Stage {habit.current_stage + 1} · {stage.goal}
