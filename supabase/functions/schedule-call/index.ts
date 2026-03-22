@@ -53,22 +53,18 @@ serve(async (req) => {
       });
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("phone_number")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const rawPhone = profile?.phone_number;
+    const body = await req.json();
+    const rawPhone = body.phone_number;
     if (!rawPhone) {
       return new Response(
-        JSON.stringify({ error: "No phone number on file" }),
+        JSON.stringify({ error: "phone_number is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const userPhone = toE164(rawPhone);
-    console.log(`Scheduling call: raw=${rawPhone} e164=${userPhone}`);
+    const scheduledAt = body.scheduled_at ?? new Date(Date.now() + 2 * 60 * 1000).toISOString();
+    console.log(`Scheduling call: raw=${rawPhone} e164=${userPhone} at=${scheduledAt}`);
 
     const CLAWDTALK_API_KEY = Deno.env.get("CLAWDTALK_API_KEY");
     if (!CLAWDTALK_API_KEY) {
@@ -77,8 +73,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
     const res = await fetch(
       `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events`,
