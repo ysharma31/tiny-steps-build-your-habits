@@ -77,32 +77,7 @@ serve(async (req) => {
       
       if (conversations.length === 0) throw new Error("No conversations found");
 
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      const recentConv = conversations.find((conv: any) => {
-        const t = new Date(conv.created_at || conv.started_at || conv.timestamp || 0);
-        return t >= thirtyMinutesAgo;
-      });
-      if (!recentConv) {
-        return new Response(
-          JSON.stringify({
-            fallback: true,
-            no_conversation: true,
-            habits: activeHabits.map((h: any) => ({
-              habit_id: h.id,
-              habit_name: h.name,
-              completed: false,
-              partial: false,
-              notes: "",
-              confidence: "low",
-            })),
-            summary: "",
-            tomorrows_goals: "",
-            mood: "neutral",
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      conversationId = recentConv.id || recentConv.conversation_id;
+      conversationId = conversations[0].id || conversations[0].conversation_id;
 
       // Get messages for that conversation
       const msgRes = await fetch(

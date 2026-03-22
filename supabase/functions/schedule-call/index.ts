@@ -7,9 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
-const NOVA_PHONE = "+15096925293";
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,16 +21,8 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
-
-    if (!supabaseUrl || !supabaseKey) {
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -46,29 +35,19 @@ serve(async (req) => {
       });
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("phone_number")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const userPhone = profile?.phone_number;
-    if (!userPhone) {
-      return new Response(
-        JSON.stringify({ error: "No phone number on file" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { phone_number, scheduled_at } = await req.json();
 
     const CLAWDTALK_API_KEY = Deno.env.get("CLAWDTALK_API_KEY");
     if (!CLAWDTALK_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "CLAWDTALK_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("CLAWDTALK_API_KEY not configured");
     }
 
-    const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
+    const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
+    const NOVA_PHONE = "+15096925293";
+
+    // Normalize phone to E.164
+    const digits = phone_number.replace(/\D/g, "");
+    const e164 = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
 
     const res = await fetch(
       `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events`,
@@ -80,28 +59,22 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           channel: "call",
-          to: userPhone,
+          to: e164,
           from: NOVA_PHONE,
-          scheduled_at: scheduledAt,
+          scheduled_at,
         }),
       }
     );
 
     if (!res.ok) {
-      const text = await res.text();
-      return new Response(
-        JSON.stringify({ error: `ClawdTalk error ${res.status}: ${text}` }),
-        { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const errText = await res.text();
+      throw new Error(`ClawdTalk error ${res.status}: ${errText}`);
     }
 
     const data = await res.json();
-    const eventId = data.id || data.event_id || "";
-
-    return new Response(
-      JSON.stringify({ event_id: eventId }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, data }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("schedule-call error:", e);
     return new Response(

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type PageState = "idle" | "scheduled" | "missed" | "cancelled";
+type PageState = "idle" | "scheduled";
 
 const NOVA_PHONE = import.meta.env.VITE_NOVA_PHONE_NUMBER ?? "+15096925293";
 
@@ -14,7 +14,6 @@ const CallingPage = () => {
   const [pageState, setPageState] = useState<PageState>("idle");
   const [userPhone, setUserPhone] = useState<string>("");
   const [countdown, setCountdown] = useState(120);
-  const [scheduledEventId, setScheduledEventId] = useState<string>("");
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load user phone on mount
@@ -40,7 +39,6 @@ const CallingPage = () => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownRef.current!);
-            setPageState("missed");
             return 0;
           }
           return prev - 1;
@@ -59,15 +57,23 @@ const CallingPage = () => {
 
   const scheduleCall = async () => {
     if (!userPhone) {
-      toast({ description: "Add your phone number in Settings first.", variant: "destructive" });
-      navigate("/settings");
+      toast({
+        description: "No phone number on file — add one in Settings first.",
+        variant: "destructive",
+      });
       return;
     }
 
+    const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
+
     try {
-      const { data, error } = await supabase.functions.invoke("schedule-call");
+      const { data, error } = await supabase.functions.invoke("schedule-call", {
+        body: { phone_number: userPhone, scheduled_at: scheduledAt },
+      });
+
       if (error) throw error;
-      setScheduledEventId(data.event_id || "");
+      if (data?.error) throw new Error(data.error);
+
       setPageState("scheduled");
     } catch {
       toast({
@@ -78,24 +84,9 @@ const CallingPage = () => {
     }
   };
 
-  const cancelCall = async () => {
-    // If we have no event ID, we can't cancel server-side — just update UI
-    if (!scheduledEventId) {
-      setPageState("cancelled");
-      return;
-    }
-    try {
-      const { error } = await supabase.functions.invoke("cancel-call", {
-        body: { event_id: scheduledEventId },
-      });
-      if (error) throw error;
-      setPageState("cancelled");
-    } catch (e) {
-      toast({
-        description: `Couldn't cancel the call: ${e instanceof Error ? e.message : "unknown error"}`,
-        variant: "destructive",
-      });
-    }
+  const cancelCall = () => {
+    setPageState("idle");
+    toast({ description: "Call cancelled." });
   };
 
   const handleBackFromCall = () => {
@@ -185,42 +176,6 @@ const CallingPage = () => {
             </button>
           </div>
         </>
-      )}
-
-      {pageState === "missed" && (
-        <div className="flex flex-col items-center gap-3 mb-12 w-full max-w-sm">
-          <span className="text-4xl">📵</span>
-          <p className="font-heading text-xl font-bold text-foreground">
-            Missed the call?
-          </p>
-          <p className="font-body text-sm text-muted-foreground text-center max-w-xs">
-            No worries — dial Nova directly or tap "Back from my call"
-            if you already spoke with her.
-          </p>
-          <button
-            onClick={() => setPageState("idle")}
-            className="font-body text-sm text-primary underline hover:text-primary/80 transition-colors mt-1"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
-      {pageState === "cancelled" && (
-        <div className="w-full max-w-sm mb-6 rounded-xl bg-yellow-100 border border-yellow-400 px-4 py-3 flex flex-col items-center gap-1">
-          <p className="font-body text-sm font-semibold text-yellow-800">
-            Call cancelled
-          </p>
-          <p className="font-body text-xs text-yellow-700 text-center">
-            Nova's call has been cancelled successfully.
-          </p>
-          <button
-            onClick={() => setPageState("idle")}
-            className="font-body text-xs text-yellow-800 underline hover:text-yellow-900 transition-colors mt-1"
-          >
-            Dismiss
-          </button>
-        </div>
       )}
 
       {/* Back from my call — always visible */}
