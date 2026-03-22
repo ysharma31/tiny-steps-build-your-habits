@@ -42,7 +42,7 @@ const SettingsPage = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, phone_number, preferred_call_time")
+        .select("display_name, phone_number, preferred_call_time, notif_sms, notif_browser, notif_inapp")
         .eq("user_id", session.user.id)
         .single();
       if (profile) {
