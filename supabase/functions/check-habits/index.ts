@@ -76,10 +76,11 @@ serve(async (req) => {
 
   let message = "";
   if (!hasLoggedAll) {
+    const greeting = "Hi! This is Nova, your habits coach. Hope you're ready for a good productive day. ";
     if (unloggedHabits.length === allHabits.length) {
-      message = `You haven't logged any habits today! Open the app to track: ${unloggedHabits.join(", ")}. 📱`;
+      message = `${greeting}You haven't logged any habits today! Open the app to track: ${unloggedHabits.join(", ")}. 📱`;
     } else {
-      message = `You haven't logged: ${unloggedHabits.join(", ")}. Open the app to track your progress! 📱`;
+      message = `${greeting}You haven't logged: ${unloggedHabits.join(", ")}. Open the app to track your progress! 📱`;
     }
   }
 
