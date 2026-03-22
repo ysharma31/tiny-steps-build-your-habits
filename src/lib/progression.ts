@@ -139,7 +139,8 @@ export async function processHabitProgression(
     .from("habits")
     .update({ streak: newStreak, current_stage: newStage })
     .eq("id", habitId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .select();
 
   return {
     streak: newStreak,
@@ -178,7 +179,8 @@ export async function checkAllHabitsProgression(
       .from("habits")
       .update({ streak: 0, current_stage: newStage })
       .eq("id", habit.id)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select();
 
     results.set(habit.id, {
       streak: 0,

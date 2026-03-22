@@ -96,7 +96,8 @@ const SettingsPage = () => {
         .from("habits")
         .update({ habit_stages: stages as unknown as any })
         .eq("id", habit.id)
-        .eq("user_id", session.user.id);
+        .eq("user_id", session.user.id)
+        .select();
 
       if (error) failed = true;
     }
@@ -175,7 +176,8 @@ const SettingsPage = () => {
                   const { error } = await supabase
                     .from("profiles")
                     .update({ display_name: displayName.trim() || null })
-                    .eq("user_id", session.user.id);
+                    .eq("user_id", session.user.id)
+                    .select();
                   if (!error) {
                     toast({ title: "Saved", description: "Display name updated." });
                   }
@@ -193,7 +195,8 @@ const SettingsPage = () => {
                   const { error } = await supabase
                     .from("profiles")
                     .update({ phone_number: phone.trim() || null })
-                    .eq("user_id", session.user.id);
+                    .eq("user_id", session.user.id)
+                    .select();
                   if (!error) {
                     toast({ title: "Saved", description: "Phone number updated." });
                   }
@@ -277,7 +280,8 @@ const SettingsPage = () => {
                 const { error } = await supabase
                   .from("profiles")
                   .update({ preferred_call_time: newTime + ":00" })
-                  .eq("user_id", session.user.id);
+                  .eq("user_id", session.user.id)
+                  .select();
                 if (!error) {
                   toast({ title: "Saved", description: "Call time updated." });
                 }

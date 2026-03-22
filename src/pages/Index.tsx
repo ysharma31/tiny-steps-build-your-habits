@@ -193,13 +193,26 @@ const DashboardPage = () => {
   const handleRemove = async (id: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+
+    // Delete all habit logs for this habit
+    await supabase
+      .from("habit_logs")
+      .delete()
+      .eq("habit_id", id)
+      .eq("user_id", session.user.id);
+
+    // Delete the habit itself
     await supabase
       .from("habits")
-      .update({ archived: true })
+      .delete()
       .eq("id", id)
       .eq("user_id", session.user.id);
+
+    // Remove from local state immediately
     setHabits((prev) => prev.filter((h) => h.id !== id));
     setLoggedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    setWeekLogs((prev) => prev.filter((l) => l.habit_id !== id));
+    setCelebrations((prev) => prev.filter((c) => c.habitId !== id));
   };
 
   const completedToday = loggedIds.size;
