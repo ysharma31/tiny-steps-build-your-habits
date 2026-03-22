@@ -30,6 +30,7 @@ const SettingsPage = () => {
   const [habits, setHabits] = useState<HabitWithStages[]>([]);
   const [editedStages, setEditedStages] = useState<Record<string, HabitStage[]>>({});
   const [saving, setSaving] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -105,6 +106,35 @@ const SettingsPage = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
+  };
+
+  const sendSmsReminder = async () => {
+    const apiKey = import.meta.env.VITE_CLAWDTALK_API_KEY;
+    const assistantId = import.meta.env.VITE_CLAWDTALK_ASSISTANT_ID;
+    const scheduledAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const res = await fetch(
+      `https://clawdtalk.com/v1/assistants/${assistantId}/events`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channel: "sms",
+          to: phone,
+          from: "+15096925293",
+          text_body: `Hey ${displayName}, Nova will check in with you in 15 minutes. How's your day going? 🌿`,
+          scheduled_at: scheduledAt,
+        }),
+      }
+    );
+    if (res.ok) {
+      toast({ title: "SMS scheduled", description: "Nova will text you 15 minutes before your call." });
+    } else {
+      toast({ title: "Couldn't schedule SMS", description: "Try again in a moment.", variant: "destructive" });
+      setSmsEnabled(false);
+    }
   };
 
   const initial = displayName ? displayName.charAt(0).toUpperCase() : "?";
@@ -256,16 +286,24 @@ const SettingsPage = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-lg font-heading font-semibold">Notifications</h2>
           <div className="space-y-3">
-            {[
-              { label: "Browser notifications", key: "browser" },
-              { label: "SMS reminder from Nova", key: "sms" },
-              { label: "In-app reminder", key: "inapp" },
-            ].map(({ label, key }) => (
-              <div key={key} className="flex items-center justify-between">
-                <Label className="font-body text-sm">{label}</Label>
-                <Switch />
-              </div>
-            ))}
+            <div className="flex items-center justify-between">
+              <Label className="font-body text-sm">Browser notifications</Label>
+              <Switch />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="font-body text-sm">SMS reminder from Nova</Label>
+              <Switch
+                checked={smsEnabled}
+                onCheckedChange={(checked) => {
+                  setSmsEnabled(checked);
+                  if (checked) sendSmsReminder();
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="font-body text-sm">In-app reminder</Label>
+              <Switch />
+            </div>
           </div>
         </CardContent>
       </Card>
