@@ -7,6 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
+const NOVA_PHONE = "+15096925293";
+
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("1") && digits.length === 11) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  return `+${digits}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,8 +31,16 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -35,19 +53,32 @@ serve(async (req) => {
       });
     }
 
-    const { phone_number, scheduled_at } = await req.json();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("phone_number")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const rawPhone = profile?.phone_number;
+    if (!rawPhone) {
+      return new Response(
+        JSON.stringify({ error: "No phone number on file" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userPhone = toE164(rawPhone);
+    console.log(`Scheduling call: raw=${rawPhone} e164=${userPhone}`);
 
     const CLAWDTALK_API_KEY = Deno.env.get("CLAWDTALK_API_KEY");
     if (!CLAWDTALK_API_KEY) {
-      throw new Error("CLAWDTALK_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "CLAWDTALK_API_KEY not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
-    const NOVA_PHONE = "+15096925293";
-
-    // Normalize phone to E.164
-    const digits = phone_number.replace(/\D/g, "");
-    const e164 = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
+    const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
     const res = await fetch(
       `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events`,
@@ -59,22 +90,31 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           channel: "call",
-          to: e164,
+          to: userPhone,
           from: NOVA_PHONE,
-          scheduled_at,
+          scheduled_at: scheduledAt,
         }),
       }
     );
 
+    const responseText = await res.text();
+    console.log(`ClawdTalk response ${res.status}: ${responseText}`);
+
     if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`ClawdTalk error ${res.status}: ${errText}`);
+      return new Response(
+        JSON.stringify({ error: `ClawdTalk error ${res.status}: ${responseText}` }),
+        { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const data = await res.json();
-    return new Response(JSON.stringify({ success: true, data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const data = JSON.parse(responseText);
+    const eventId = data.id || data.event_id || data.eventId || data.event?.id || "";
+    console.log(`Extracted event_id: ${eventId} from keys: ${Object.keys(data).join(", ")}`);
+
+    return new Response(
+      JSON.stringify({ event_id: eventId }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (e) {
     console.error("schedule-call error:", e);
     return new Response(
