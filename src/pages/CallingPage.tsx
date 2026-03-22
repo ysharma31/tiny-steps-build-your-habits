@@ -75,6 +75,7 @@ const CallingPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      console.log("[schedule-call] response:", JSON.stringify(data));
       setScheduledEventId(data.event_id || "");
       setPageState("scheduled");
     } catch {

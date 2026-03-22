@@ -103,10 +103,10 @@ serve(async (req) => {
 
     const data = JSON.parse(responseText);
     const eventId = data.id || data.event_id || data.eventId || data.event?.id || "";
-    console.log(`Extracted event_id: ${eventId} from keys: ${Object.keys(data).join(", ")}`);
+    console.log(`Extracted event_id: ${eventId} from keys: ${Object.keys(data).join(", ")} raw: ${responseText}`);
 
     return new Response(
-      JSON.stringify({ event_id: eventId }),
+      JSON.stringify({ event_id: eventId, _debug_keys: Object.keys(data), _debug_raw: data }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
