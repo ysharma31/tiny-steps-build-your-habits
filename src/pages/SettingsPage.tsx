@@ -42,7 +42,7 @@ const SettingsPage = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, phone_number, preferred_call_time")
+        .select("display_name, phone_number, preferred_call_time, notif_browser, notif_sms, notif_inapp")
         .eq("user_id", session.user.id)
         .single();
       if (profile) {
@@ -51,6 +51,9 @@ const SettingsPage = () => {
         if (profile.preferred_call_time) {
           setCallTime(profile.preferred_call_time.slice(0, 5));
         }
+        setBrowserEnabled(profile.notif_browser ?? false);
+        setSmsEnabled(profile.notif_sms ?? false);
+        setInAppEnabled(profile.notif_inapp ?? false);
       }
 
       const { data: habitsData } = await supabase
@@ -295,21 +298,37 @@ const SettingsPage = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">Browser notifications</Label>
-              <Switch checked={browserEnabled} onCheckedChange={setBrowserEnabled} />
+              <Switch
+                checked={browserEnabled}
+                onCheckedChange={async (checked) => {
+                  setBrowserEnabled(checked);
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session) await supabase.from("profiles").update({ notif_browser: checked }).eq("user_id", session.user.id);
+                }}
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">SMS reminder from Nova</Label>
               <Switch
                 checked={smsEnabled}
-                onCheckedChange={(checked) => {
+                onCheckedChange={async (checked) => {
                   setSmsEnabled(checked);
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session) await supabase.from("profiles").update({ notif_sms: checked }).eq("user_id", session.user.id);
                   if (checked) sendSmsReminder();
                 }}
               />
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">In-app reminder</Label>
-              <Switch checked={inAppEnabled} onCheckedChange={setInAppEnabled} />
+              <Switch
+                checked={inAppEnabled}
+                onCheckedChange={async (checked) => {
+                  setInAppEnabled(checked);
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session) await supabase.from("profiles").update({ notif_inapp: checked }).eq("user_id", session.user.id);
+                }}
+              />
             </div>
           </div>
         </CardContent>
