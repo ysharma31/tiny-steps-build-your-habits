@@ -76,7 +76,9 @@ const CallingPage = () => {
       if (data?.error) throw new Error(data.error);
 
       console.log("[schedule-call] response:", JSON.stringify(data));
-      setScheduledEventId(data.event_id || "");
+      const eid = data?.data?.event?.id;
+      setScheduledEventId(eid || data.event_id || "");
+      sessionStorage.setItem("callStartedAt", scheduledAt);
       setPageState("scheduled");
     } catch {
       toast({
@@ -97,6 +99,7 @@ const CallingPage = () => {
         // best-effort — still reset UI
       }
     }
+    sessionStorage.removeItem("callStartedAt");
     setScheduledEventId("");
     setPageState("idle");
     toast({ description: "Call cancelled.", variant: "warning" });
@@ -130,6 +133,7 @@ const CallingPage = () => {
             {/* Option 1 — Call Nova */}
             <a
               href={`tel:${NOVA_PHONE}`}
+              onClick={() => sessionStorage.setItem("callStartedAt", new Date().toISOString())}
               className="flex-1 flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-border bg-card hover:border-primary/40 transition-colors"
             >
               <span className="text-3xl">📞</span>

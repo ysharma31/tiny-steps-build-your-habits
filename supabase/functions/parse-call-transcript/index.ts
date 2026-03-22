@@ -21,6 +21,21 @@ serve(async (req) => {
       });
     }
 
+    // Parse after_timestamp from request body
+    let afterTimestamp: Date;
+    try {
+      const body = await req.json().catch(() => ({}));
+      const raw = body?.after_timestamp;
+      const parsed = raw ? new Date(raw) : null;
+      if (parsed && !isNaN(parsed.getTime()) && parsed.getTime() <= Date.now()) {
+        afterTimestamp = parsed;
+      } else {
+        afterTimestamp = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      }
+    } catch {
+      afterTimestamp = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
     
@@ -74,10 +89,37 @@ serve(async (req) => {
 
       const convData = await convRes.json();
       const conversations = Array.isArray(convData) ? convData : convData.data || convData.conversations || [];
-      
+
       if (conversations.length === 0) throw new Error("No conversations found");
 
-      conversationId = conversations[0].id || conversations[0].conversation_id;
+      // Filter to conversations that have at least one timestamp >= afterTimestamp
+      const recentConversations = conversations.filter((c: any) => {
+        const timestamps = [c.created_at, c.started_at, c.updated_at, c.ended_at]
+          .filter(Boolean)
+          .map((t: string) => new Date(t).getTime());
+        return timestamps.some((t) => t >= afterTimestamp.getTime());
+      });
+
+      if (recentConversations.length === 0) {
+        return new Response(
+          JSON.stringify({
+            no_recent_call: true,
+            fallback: false,
+            habits: [],
+            summary: "",
+            tomorrows_goals: "",
+            mood: "neutral",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Sort descending by created_at and take the most recent
+      recentConversations.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      conversationId = recentConversations[0].id || recentConversations[0].conversation_id;
 
       // Get messages for that conversation
       const msgRes = await fetch(
@@ -145,6 +187,8 @@ Based on the transcript, identify:
 2. Any partial completions or context
 3. What Nova recommended for tomorrow
 4. The user's overall mood and energy level
+
+IMPORTANT: Only mark a habit as completed if it was clearly discussed in THIS transcript. If a habit was not mentioned, mark completed: false with confidence: low.
 
 Return ONLY valid JSON in this exact format, no other text:
 {
