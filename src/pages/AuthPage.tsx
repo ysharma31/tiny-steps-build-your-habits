@@ -16,33 +16,37 @@ const AuthPage = () => {
   
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        const { count } = await supabase
+    const navigateAfterAuth = async (userId: string) => {
+      try {
+        const { count, error } = await supabase
           .from("habits")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", session.user.id);
+          .eq("user_id", userId);
+
+        if (error) {
+          navigate("/onboarding", { replace: true });
+          return;
+        }
 
         if ((count ?? 0) > 0) {
           navigate("/", { replace: true });
         } else {
           navigate("/onboarding", { replace: true });
         }
+      } catch {
+        navigate("/onboarding", { replace: true });
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        await navigateAfterAuth(session.user.id);
       }
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { count } = await supabase
-          .from("habits")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", session.user.id);
-
-        if ((count ?? 0) > 0) {
-          navigate("/", { replace: true });
-        } else {
-          navigate("/onboarding", { replace: true });
-        }
+        await navigateAfterAuth(session.user.id);
       }
     });
 
