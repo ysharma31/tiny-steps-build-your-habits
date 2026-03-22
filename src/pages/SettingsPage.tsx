@@ -22,25 +22,8 @@ interface HabitWithStages {
   habit_stages: HabitStage[];
 }
 
-// Convert "HH:MM" local time → "HH:MM:00" UTC for DB storage
-const localTimeToUtc = (localHHMM: string): string => {
-  const [h, m] = localHHMM.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  const uh = d.getUTCHours().toString().padStart(2, "0");
-  const um = d.getUTCMinutes().toString().padStart(2, "0");
-  return `${uh}:${um}:00`;
-};
-
-// Convert "HH:MM:00" UTC from DB → "HH:MM" local time for display
-const utcTimeToLocal = (utcHHMMSS: string): string => {
-  const [h, m] = utcHHMMSS.split(":").map(Number);
-  const d = new Date();
-  d.setUTCHours(h, m, 0, 0);
-  const lh = d.getHours().toString().padStart(2, "0");
-  const lm = d.getMinutes().toString().padStart(2, "0");
-  return `${lh}:${lm}`;
-};
+// Call times are stored as-is in PST (America/Los_Angeles).
+// The scheduler reads PST current time and matches against this value directly.
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -72,7 +55,7 @@ const SettingsPage = () => {
         setBrowserEnabled(profile.notif_browser ?? false);
         setInAppEnabled(profile.notif_inapp ?? false);
         if (profile.preferred_call_time) {
-          setCallTime(utcTimeToLocal(profile.preferred_call_time));
+          setCallTime(profile.preferred_call_time.slice(0, 5));
         }
       }
 
@@ -296,7 +279,7 @@ const SettingsPage = () => {
                 if (!session) return;
                 const { error } = await supabase
                   .from("profiles")
-                  .update({ preferred_call_time: localTimeToUtc(newTime) })
+                  .update({ preferred_call_time: newTime + ":00" })
                   .eq("user_id", session.user.id)
                   .select();
                 if (!error) {
