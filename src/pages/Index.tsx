@@ -85,6 +85,7 @@ const DashboardPage = () => {
       habitsTyped.map((h) => ({
         id: h.id,
         current_stage: h.current_stage,
+        streak: h.streak,
         habit_stages: h.habit_stages,
       }))
     );
