@@ -56,9 +56,6 @@ const CallingPage = () => {
   }, [pageState]);
 
   const scheduleCall = async () => {
-    const apiKey = import.meta.env.VITE_CLAWDTALK_API_KEY;
-    const assistantId = import.meta.env.VITE_CLAWDTALK_ASSISTANT_ID;
-
     if (!userPhone) {
       toast({
         description: "No phone number on file — add one in Settings first.",
@@ -70,24 +67,12 @@ const CallingPage = () => {
     const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
     try {
-      const res = await fetch(
-        `https://clawdtalk.com/v1/assistants/${assistantId}/events`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            channel: "call",
-            to: userPhone,
-            from: NOVA_PHONE,
-            scheduled_at: scheduledAt,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("schedule-call", {
+        body: { phone_number: userPhone, scheduled_at: scheduledAt },
+      });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setPageState("scheduled");
     } catch {
