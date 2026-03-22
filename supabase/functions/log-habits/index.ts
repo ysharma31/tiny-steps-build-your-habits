@@ -71,7 +71,7 @@ serve(async (req) => {
             completed,
             notes,
           },
-          { onConflict: "habit_id,user_id,date" }
+          { onConflict: "habit_id,date" }
         );
 
       if (logError) throw logError;
