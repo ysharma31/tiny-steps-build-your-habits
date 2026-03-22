@@ -303,7 +303,14 @@ const SettingsPage = () => {
                 onCheckedChange={async (checked) => {
                   setBrowserEnabled(checked);
                   const { data: { session } } = await supabase.auth.getSession();
-                  if (session) await supabase.from("profiles").update({ notif_browser: checked }).eq("user_id", session.user.id);
+                  if (session) {
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ notif_browser: checked })
+                      .eq("user_id", session.user.id)
+                      .select();
+                    if (error) toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+                  }
                 }}
               />
             </div>
@@ -314,7 +321,14 @@ const SettingsPage = () => {
                 onCheckedChange={async (checked) => {
                   setSmsEnabled(checked);
                   const { data: { session } } = await supabase.auth.getSession();
-                  if (session) await supabase.from("profiles").update({ notif_sms: checked }).eq("user_id", session.user.id);
+                  if (session) {
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ notif_sms: checked })
+                      .eq("user_id", session.user.id)
+                      .select();
+                    if (error) toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+                  }
                   if (checked) sendSmsReminder();
                 }}
               />
@@ -326,7 +340,14 @@ const SettingsPage = () => {
                 onCheckedChange={async (checked) => {
                   setInAppEnabled(checked);
                   const { data: { session } } = await supabase.auth.getSession();
-                  if (session) await supabase.from("profiles").update({ notif_inapp: checked }).eq("user_id", session.user.id);
+                  if (session) {
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ notif_inapp: checked })
+                      .eq("user_id", session.user.id)
+                      .select();
+                    if (error) toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+                  }
                 }}
               />
             </div>
