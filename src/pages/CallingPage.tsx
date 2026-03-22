@@ -75,6 +75,10 @@ const CallingPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      // Store the event ID so we can cancel it later
+      const eid = data?.data?.event?.id;
+      if (eid) setEventId(eid);
+
       setPageState("scheduled");
     } catch {
       toast({
