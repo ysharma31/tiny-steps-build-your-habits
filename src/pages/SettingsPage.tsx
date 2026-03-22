@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,6 +144,10 @@ const SettingsPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <Link to="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-body transition-colors w-fit">
+        <ChevronLeft className="h-4 w-4" /> Return to Dashboard
+      </Link>
+
       <h1 className="text-2xl font-heading font-bold text-foreground">
         Settings
       </h1>

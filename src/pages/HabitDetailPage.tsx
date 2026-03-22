@@ -341,6 +341,9 @@ const HistoryList = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Link to="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-body transition-colors w-fit mb-4">
+        <ChevronLeft className="h-4 w-4" /> Return to Dashboard
+      </Link>
       <h1 className="text-2xl font-heading font-bold text-foreground mb-6">Habit History</h1>
       {habits.length === 0 ? (
         <p className="text-muted-foreground font-body">
