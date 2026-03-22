@@ -190,6 +190,18 @@ const DashboardPage = () => {
     setCelebrations((prev) => prev.filter((c) => c.habitId !== habitId));
   };
 
+  const handleRemove = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase
+      .from("habits")
+      .update({ archived: true })
+      .eq("id", id)
+      .eq("user_id", session.user.id);
+    setHabits((prev) => prev.filter((h) => h.id !== id));
+    setLoggedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
   const completedToday = loggedIds.size;
   const progressPercent = habits.length > 0 ? (completedToday / habits.length) * 100 : 0;
 
@@ -270,7 +282,7 @@ const DashboardPage = () => {
       </div>
       <div className="space-y-4 mb-6">
         {habitCards.map((habit) => (
-          <HabitCard key={habit.id} habit={habit} onLog={handleLog} />
+          <HabitCard key={habit.id} habit={habit} onLog={handleLog} onRemove={handleRemove} />
         ))}
       </div>
 

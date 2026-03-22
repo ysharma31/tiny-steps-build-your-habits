@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Check } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 
 const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -27,12 +27,14 @@ interface HabitProps {
     weekDays: (boolean | null)[];
   };
   onLog: (id: string) => void;
+  onRemove: (id: string) => void;
 }
 
-const HabitCard = ({ habit, onLog }: HabitProps) => {
+const HabitCard = ({ habit, onLog, onRemove }: HabitProps) => {
   const [showAffirmation, setShowAffirmation] = useState(false);
   const [affirmation, setAffirmation] = useState("");
   const [animating, setAnimating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleLog = () => {
     setAnimating(true);
@@ -59,11 +61,40 @@ const HabitCard = ({ habit, onLog }: HabitProps) => {
               {habit.name}
             </h3>
           </Link>
-          {habit.streak > 0 && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-body font-medium whitespace-nowrap">
-              🔥 {habit.streak} day streak
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {habit.streak > 0 && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-body font-medium whitespace-nowrap">
+                🔥 {habit.streak} day streak
+              </span>
+            )}
+            {/* Remove button */}
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+                aria-label="Remove habit"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-destructive/10 rounded-lg px-2 py-1">
+                <span className="text-xs font-body text-destructive font-medium">Remove?</span>
+                <button
+                  onClick={() => onRemove(habit.id)}
+                  className="text-xs font-body font-semibold text-destructive hover:underline"
+                >
+                  Yes
+                </button>
+                <span className="text-xs text-muted-foreground">·</span>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="text-xs font-body text-muted-foreground hover:text-foreground"
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Today's goal */}
