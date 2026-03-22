@@ -17,8 +17,10 @@ interface ProgressionResult {
   };
 }
 
+// Returns YYYY-MM-DD in PST (America/Los_Angeles) so habit logs, streaks,
+// and the week view all align with the user's local calendar day.
 export function localDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
 }
 
 /**
