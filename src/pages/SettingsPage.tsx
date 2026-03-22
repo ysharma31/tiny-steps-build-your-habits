@@ -298,21 +298,34 @@ const SettingsPage = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">Browser notifications</Label>
-              <Switch checked={browserEnabled} onCheckedChange={setBrowserEnabled} />
+              <Switch checked={browserEnabled} onCheckedChange={async (checked) => {
+                setBrowserEnabled(checked);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                await supabase.from("profiles").update({ notif_browser: checked }).eq("user_id", session.user.id);
+              }} />
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">SMS reminder from Nova</Label>
               <Switch
                 checked={smsEnabled}
-                onCheckedChange={(checked) => {
+                onCheckedChange={async (checked) => {
                   setSmsEnabled(checked);
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) return;
+                  await supabase.from("profiles").update({ notif_sms: checked }).eq("user_id", session.user.id);
                   if (checked) sendSmsReminder();
                 }}
               />
             </div>
             <div className="flex items-center justify-between">
               <Label className="font-body text-sm">In-app reminder</Label>
-              <Switch checked={inAppEnabled} onCheckedChange={setInAppEnabled} />
+              <Switch checked={inAppEnabled} onCheckedChange={async (checked) => {
+                setInAppEnabled(checked);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                await supabase.from("profiles").update({ notif_inapp: checked }).eq("user_id", session.user.id);
+              }} />
             </div>
           </div>
         </CardContent>
