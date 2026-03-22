@@ -12,6 +12,7 @@ const CallingPage = () => {
   const { toast } = useToast();
 
   const [pageState, setPageState] = useState<PageState>("idle");
+  const [eventId, setEventId] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string>("");
   const [countdown, setCountdown] = useState(120);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
