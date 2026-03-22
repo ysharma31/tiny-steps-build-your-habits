@@ -116,10 +116,20 @@ const CalendarHeatmap = ({ logs }: { logs: LogRow[] }) => {
 
 const HabitDetail = ({ habitId }: { habitId: string }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [habit, setHabit] = useState<HabitRow | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [bestStreak, setBestStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const handleDelete = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from("habit_logs").delete().eq("habit_id", habitId).eq("user_id", session.user.id);
+    await supabase.from("habits").delete().eq("id", habitId).eq("user_id", session.user.id);
+    toast({ title: "Deleted", description: `"${habit?.name}" has been removed.` });
+    navigate("/", { replace: true });
+  };
 
   useEffect(() => {
     const load = async () => {
