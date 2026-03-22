@@ -17,6 +17,10 @@ interface ProgressionResult {
   };
 }
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /**
  * Calculate the consecutive completed-day streak for a habit up to today.
  */
@@ -33,13 +37,12 @@ async function calculateStreak(habitId: string, userId: string): Promise<number>
   if (!logs || logs.length === 0) return 0;
 
   let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
   for (let i = 0; i < 365; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(today.getDate() - i);
-    const dateStr = checkDate.toISOString().split("T")[0];
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dateStr = localDateStr(d);
 
     const log = logs.find((l) => l.date === dateStr);
     if (log && log.completed) {
@@ -56,26 +59,23 @@ async function calculateStreak(habitId: string, userId: string): Promise<number>
  * Check if the user missed 2 consecutive days (yesterday and day before).
  */
 function checkRegression(logs: { date: string; completed: boolean }[]): boolean {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const dayBefore = new Date(today);
-  dayBefore.setDate(today.getDate() - 2);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const dayBefore = new Date(now);
+  dayBefore.setDate(now.getDate() - 2);
 
-  const yStr = yesterday.toISOString().split("T")[0];
-  const dbStr = dayBefore.toISOString().split("T")[0];
+  const yStr = localDateStr(yesterday);
+  const dbStr = localDateStr(dayBefore);
+  const todayStr = localDateStr(now);
 
   const yLog = logs.find((l) => l.date === yStr);
   const dbLog = logs.find((l) => l.date === dbStr);
+  const todayLog = logs.find((l) => l.date === todayStr);
 
   const yMissed = !yLog || !yLog.completed;
   const dbMissed = !dbLog || !dbLog.completed;
-
-  // Also check today wasn't logged (if today is logged, no regression)
-  const todayStr = today.toISOString().split("T")[0];
-  const todayLog = logs.find((l) => l.date === todayStr);
   const todayLogged = todayLog && todayLog.completed;
 
   return yMissed && dbMissed && !todayLogged;
@@ -151,26 +151,41 @@ export async function processHabitProgression(
 }
 
 /**
- * Run progression check for all habits of a user (on dashboard load).
- * Returns a map of habitId → ProgressionResult for any that changed.
+ * Run regression check for all habits of a user (on dashboard load).
+ * Only writes to the DB if a habit has regressed (2 consecutive missed days).
+ * Does NOT recalculate or overwrite streaks for habits that are fine.
  */
 export async function checkAllHabitsProgression(
   userId: string,
-  habits: { id: string; current_stage: number; habit_stages: HabitStage[] }[]
+  habits: { id: string; current_stage: number; streak: number; habit_stages: HabitStage[] }[]
 ): Promise<Map<string, ProgressionResult>> {
   const results = new Map<string, ProgressionResult>();
 
   for (const habit of habits) {
-    const result = await processHabitProgression(
-      habit.id,
-      userId,
-      habit.current_stage,
-      habit.habit_stages
-    );
-    // Only track if something changed
-    if (result.advanced || result.regressed || result.streak !== habit.current_stage) {
-      results.set(habit.id, result);
-    }
+    const { data: recentLogs } = await supabase
+      .from("habit_logs")
+      .select("date, completed")
+      .eq("habit_id", habit.id)
+      .eq("user_id", userId)
+      .order("date", { ascending: false })
+      .limit(7);
+
+    if (!checkRegression(recentLogs ?? [])) continue;
+    if (habit.current_stage === 0) continue;
+
+    const newStage = habit.current_stage - 1;
+    await supabase
+      .from("habits")
+      .update({ streak: 0, current_stage: newStage })
+      .eq("id", habit.id)
+      .eq("user_id", userId);
+
+    results.set(habit.id, {
+      streak: 0,
+      currentStage: newStage,
+      advanced: false,
+      regressed: true,
+    });
   }
 
   return results;
