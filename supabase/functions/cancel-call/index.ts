@@ -35,7 +35,13 @@ serve(async (req) => {
       });
     }
 
-    const { phone_number, scheduled_at } = await req.json();
+    const { event_id } = await req.json();
+    if (!event_id) {
+      return new Response(JSON.stringify({ error: "event_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const CLAWDTALK_API_KEY = Deno.env.get("CLAWDTALK_API_KEY");
     if (!CLAWDTALK_API_KEY) {
@@ -43,40 +49,31 @@ serve(async (req) => {
     }
 
     const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
-    const NOVA_PHONE = "+15096925293";
-
-    // Normalize phone to E.164
-    const digits = phone_number.replace(/\D/g, "");
-    const e164 = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
 
     const res = await fetch(
-      `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events`,
+      `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events/${event_id}`,
       {
-        method: "POST",
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${CLAWDTALK_API_KEY}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          channel: "call",
-          to: e164,
-          from: NOVA_PHONE,
-          scheduled_at,
-        }),
       }
     );
 
     if (!res.ok) {
       const errText = await res.text();
+      console.error(`ClawdTalk cancel error ${res.status}: ${errText}`);
       throw new Error(`ClawdTalk error ${res.status}: ${errText}`);
     }
 
-    const data = await res.json();
-    return new Response(JSON.stringify({ success: true, data }), {
+    // Consume body to avoid resource leak
+    await res.text();
+
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("schedule-call error:", e);
+    console.error("cancel-call error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
