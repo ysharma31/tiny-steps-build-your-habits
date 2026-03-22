@@ -7,7 +7,7 @@ import { Plus, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
-import { processHabitProgression, checkAllHabitsProgression } from "@/lib/progression";
+import { processHabitProgression, checkAllHabitsProgression, localDateStr } from "@/lib/progression";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface HabitRow {
@@ -110,7 +110,7 @@ const DashboardPage = () => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      weekDates.push(d.toISOString().split("T")[0]);
+      weekDates.push(localDateStr(d));
     }
 
     // Load week logs for all habits
@@ -125,7 +125,7 @@ const DashboardPage = () => {
     setWeekDates(weekDates);
 
     // Load today's logs
-    const today = now.toISOString().split("T")[0];
+    const today = localDateStr(now);
     const { data: logs } = await supabase
       .from("habit_logs")
       .select("habit_id")
@@ -145,7 +145,7 @@ const DashboardPage = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = localDateStr(new Date());
     await supabase.from("habit_logs").upsert(
       { habit_id: id, user_id: session.user.id, date: today, completed: true },
       { onConflict: "habit_id,date" }
@@ -214,7 +214,7 @@ const DashboardPage = () => {
       isFinal,
       loggedToday: loggedIds.has(h.id),
       weekDays: weekDates.map((date) => {
-        const today = new Date().toISOString().split("T")[0];
+        const today = localDateStr(new Date());
         if (date > today) return null; // future
         const log = weekLogs.find((l) => l.habit_id === h.id && l.date === date);
         return log?.completed ?? false;
