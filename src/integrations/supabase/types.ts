@@ -158,6 +158,9 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          notif_browser: boolean
+          notif_inapp: boolean
+          notif_sms: boolean
           phone_number: string | null
           preferred_call_time: string | null
           user_id: string
@@ -166,6 +169,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          notif_browser?: boolean
+          notif_inapp?: boolean
+          notif_sms?: boolean
           phone_number?: string | null
           preferred_call_time?: string | null
           user_id: string
@@ -174,6 +180,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          notif_browser?: boolean
+          notif_inapp?: boolean
+          notif_sms?: boolean
           phone_number?: string | null
           preferred_call_time?: string | null
           user_id?: string
