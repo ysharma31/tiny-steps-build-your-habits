@@ -118,7 +118,15 @@ const CallingPage = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
+    <div className="min-h-[80vh] flex flex-col items-center text-center px-4">
+      <button
+        onClick={() => navigate("/")}
+        className="self-start flex items-center gap-1 font-body text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 mt-2"
+      >
+        ← Dashboard
+      </button>
+
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
       <h1 className="font-heading text-2xl font-bold text-foreground mb-2">
         Talk to Nova
       </h1>
