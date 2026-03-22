@@ -62,6 +62,37 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    // Check for similar habit names (fuzzy match)
+    const { data: existingHabits } = await supabase
+      .from("habits")
+      .select("name")
+      .eq("user_id", session.user.id)
+      .eq("archived", false);
+
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]/g, " ").trim().replace(/\s+/g, " ");
+
+    const newNorm = normalize(name);
+    const newWords = new Set(newNorm.split(" ").filter((w) => w.length > 2));
+
+    const similar = (existingHabits ?? []).find((h) => {
+      const existNorm = normalize(h.name);
+      // Exact match
+      if (existNorm === newNorm) return true;
+      // One contains the other
+      if (existNorm.includes(newNorm) || newNorm.includes(existNorm)) return true;
+      // Significant word overlap (>= 50% of words in common)
+      const existWords = new Set(existNorm.split(" ").filter((w) => w.length > 2));
+      const overlap = [...newWords].filter((w) => existWords.has(w)).length;
+      const minSize = Math.min(newWords.size, existWords.size);
+      return minSize > 0 && overlap / minSize >= 0.5;
+    });
+
+    if (similar) {
+      setErrors([`A similar habit already exists: "${similar.name}"`]);
+      return;
+    }
+
     const { error } = await supabase.from("habits").insert({
       user_id: session.user.id,
       name: name.trim(),

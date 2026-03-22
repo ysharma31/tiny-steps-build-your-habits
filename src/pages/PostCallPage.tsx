@@ -18,6 +18,7 @@ interface ParsedHabit {
 interface PostCallData {
   fallback: boolean;
   no_conversation?: boolean;
+  no_recent_call?: boolean;
   habits: ParsedHabit[];
   summary: string;
   tomorrows_goals: string;
@@ -29,6 +30,7 @@ const PostCallPage = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [noConversation, setNoConversation] = useState(false);
+  const [noRecentCall, setNoRecentCall] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<PostCallData | null>(null);
@@ -40,6 +42,8 @@ const PostCallPage = () => {
   }, []);
 
   const fetchPostCallData = async () => {
+    setLoading(true);
+    setNoRecentCall(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -47,16 +51,28 @@ const PostCallPage = () => {
         return;
       }
 
-      const response = await supabase.functions.invoke("parse-call-transcript");
+      const callStartedAt = sessionStorage.getItem("callStartedAt");
+      const body = callStartedAt ? { after_timestamp: callStartedAt } : undefined;
+      const response = await supabase.functions.invoke("parse-call-transcript", { body });
 
       if (response.error) throw new Error(response.error.message);
 
       const result = response.data as PostCallData;
 
+      if (result.no_recent_call) {
+        setNoRecentCall(true);
+        setLoading(false);
+        return;
+      }
+
       if (result.no_conversation) {
         setNoConversation(true);
         setLoading(false);
         return;
+      }
+
+      if (!result.fallback) {
+        sessionStorage.removeItem("callStartedAt");
       }
 
       setData(result);
@@ -197,6 +213,26 @@ const PostCallPage = () => {
           <p className="font-body text-sm text-muted-foreground">
             This usually takes a few seconds
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (noRecentCall) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+        <span className="text-4xl mb-4 block">⏳</span>
+        <p className="font-heading text-lg font-semibold text-foreground mb-2">
+          Your call hasn't finished yet
+        </p>
+        <p className="font-body text-sm text-muted-foreground mb-6 max-w-xs">
+          It looks like your call with Nova is still in progress or just ended. Give it a moment, then check again.
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <Button onClick={fetchPostCallData}>Check again</Button>
+          <Button variant="outline" onClick={() => navigate("/calling")}>
+            Back to calling page
+          </Button>
         </div>
       </div>
     );

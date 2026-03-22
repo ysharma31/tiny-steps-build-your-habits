@@ -75,10 +75,10 @@ const CallingPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Store the event ID so we can cancel it later
+      console.log("[schedule-call] response:", JSON.stringify(data));
       const eid = data?.data?.event?.id;
       if (eid) setEventId(eid);
-
+      sessionStorage.setItem("callStartedAt", scheduledAt);
       setPageState("scheduled");
     } catch {
       toast({
@@ -99,6 +99,7 @@ const CallingPage = () => {
         // Even if cancel fails on backend, reset UI
       }
     }
+    sessionStorage.removeItem("callStartedAt");
     setEventId(null);
     setPageState("idle");
     toast({ description: "Call cancelled.", variant: "warning" });
@@ -132,6 +133,7 @@ const CallingPage = () => {
             {/* Option 1 — Call Nova */}
             <a
               href={`tel:${NOVA_PHONE}`}
+              onClick={() => sessionStorage.setItem("callStartedAt", new Date().toISOString())}
               className="flex-1 flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-border bg-card hover:border-primary/40 transition-colors"
             >
               <span className="text-3xl">📞</span>
