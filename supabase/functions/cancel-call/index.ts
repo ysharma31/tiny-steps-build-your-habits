@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 const ASSISTANT_ID = "253ec8ef-4702-4bfd-b433-5f7f1a4718ec";
-const NOVA_PHONE = "+15096925293";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,16 +45,11 @@ serve(async (req) => {
       });
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("phone_number")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const userPhone = profile?.phone_number;
-    if (!userPhone) {
+    const body = await req.json();
+    const eventId = body.event_id;
+    if (!eventId) {
       return new Response(
-        JSON.stringify({ error: "No phone number on file" }),
+        JSON.stringify({ error: "event_id is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -68,22 +62,11 @@ serve(async (req) => {
       );
     }
 
-    const scheduledAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
-
     const res = await fetch(
-      `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events`,
+      `https://clawdtalk.com/v1/assistants/${ASSISTANT_ID}/events/${eventId}`,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CLAWDTALK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          channel: "call",
-          to: userPhone,
-          from: NOVA_PHONE,
-          scheduled_at: scheduledAt,
-        }),
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${CLAWDTALK_API_KEY}` },
       }
     );
 
@@ -95,15 +78,12 @@ serve(async (req) => {
       );
     }
 
-    const data = await res.json();
-    const eventId = data.id || data.event_id || "";
-
     return new Response(
-      JSON.stringify({ event_id: eventId }),
+      JSON.stringify({ cancelled: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("schedule-call error:", e);
+    console.error("cancel-call error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
