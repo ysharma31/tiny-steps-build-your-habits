@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
@@ -262,6 +262,12 @@ const DashboardPage = () => {
       ))}
 
       {/* Habit cards */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-body font-medium text-foreground">Your habits</span>
+        <Link to="/history" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-body transition-colors">
+          View history <ChevronRight className="h-4 w-4" />
+        </Link>
+      </div>
       <div className="space-y-4 mb-6">
         {habitCards.map((habit) => (
           <HabitCard key={habit.id} habit={habit} onLog={handleLog} />
