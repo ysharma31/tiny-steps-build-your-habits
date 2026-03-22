@@ -210,6 +210,7 @@ const CallingPage = () => {
       >
         Back from my call
       </button>
+      </div>
     </div>
   );
 };
