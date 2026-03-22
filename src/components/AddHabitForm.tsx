@@ -26,13 +26,6 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
   const [startingStage, setStartingStage] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [saveError, setSaveError] = useState(false);
-
-  // Duplicate state
-  const [duplicateId, setDuplicateId] = useState<string | null>(null);
-  const [duplicateName, setDuplicateName] = useState<string>("");
-  const [addingStage, setAddingStage] = useState(false);
-  const [newStage, setNewStage] = useState<Stage>({ goal: "", advanceAfterDays: 5, isFinal: false });
-
   const addStage = () => {
     setStages([...stages, { goal: "", advanceAfterDays: 5, isFinal: false }]);
   };
@@ -69,31 +62,6 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Check for duplicate — fetch all active habits and do substring word matching
-    const { data: existing } = await supabase
-      .from("habits")
-      .select("id, name")
-      .eq("user_id", session.user.id)
-      .eq("archived", false);
-
-    const newNameLower = name.trim().toLowerCase();
-
-    const match = (existing ?? []).find((h) => {
-      const existingLower = h.name.toLowerCase();
-      // Exact match, or one name contains the other as a substring
-      return (
-        existingLower === newNameLower ||
-        existingLower.includes(newNameLower) ||
-        newNameLower.includes(existingLower)
-      );
-    });
-
-    if (match) {
-      setDuplicateId(match.id);
-      setDuplicateName(match.name);
-      return;
-    }
-
     const { error } = await supabase.from("habits").insert({
       user_id: session.user.id,
       name: name.trim(),
@@ -114,125 +82,6 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     onClose();
   };
 
-  const handleAddStageToExisting = async () => {
-    if (!duplicateId) return;
-    setSaveError(false);
-
-    // Fetch current stages
-    const { data: habit } = await supabase
-      .from("habits")
-      .select("habit_stages")
-      .eq("id", duplicateId)
-      .maybeSingle();
-
-    if (!habit) { setSaveError(true); return; }
-
-    const currentStages = (habit.habit_stages as Stage[]) ?? [];
-    const updatedStages = [
-      ...currentStages,
-      {
-        goal: newStage.goal,
-        advanceAfterDays: newStage.isFinal ? null : newStage.advanceAfterDays,
-        isFinal: newStage.isFinal,
-      },
-    ];
-
-    const { error } = await supabase
-      .from("habits")
-      .update({ habit_stages: updatedStages })
-      .eq("id", duplicateId);
-
-    if (error) { setSaveError(true); return; }
-
-    onClose();
-  };
-
-  // ── Duplicate warning UI ──────────────────────────────────────────────────
-  if (duplicateId && !addingStage) {
-    return (
-      <Card className="shadow-warm">
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-heading font-semibold">Habit already exists</h3>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="font-body text-sm text-muted-foreground">
-            <strong className="text-foreground">"{duplicateName}"</strong> is already in your habit list. Would you like to add a new stage to it instead?
-          </p>
-          <div className="flex flex-col gap-2">
-            <Button onClick={() => setAddingStage(true)} className="w-full font-body">
-              Add a stage to "{duplicateName}"
-            </Button>
-            <Button variant="outline" onClick={onClose} className="w-full font-body">
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // ── Add stage to existing habit UI ───────────────────────────────────────
-  if (duplicateId && addingStage) {
-    return (
-      <Card className="shadow-warm">
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-heading font-semibold">New stage for "{duplicateName}"</h3>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50 space-y-3">
-            <Input
-              placeholder="e.g. 30 minutes of meditation"
-              value={newStage.goal}
-              onChange={(e) => setNewStage((s) => ({ ...s, goal: e.target.value }))}
-              className="font-body text-sm"
-            />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={newStage.isFinal}
-                  onCheckedChange={(checked) => setNewStage((s) => ({ ...s, isFinal: checked }))}
-                />
-                <span className="text-xs font-body text-muted-foreground">Final stage</span>
-              </div>
-              {!newStage.isFinal && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-body text-muted-foreground">Advance after</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={newStage.advanceAfterDays}
-                    onChange={(e) => setNewStage((s) => ({ ...s, advanceAfterDays: parseInt(e.target.value) || 1 }))}
-                    className="w-16 h-8 text-center text-sm font-body"
-                  />
-                  <span className="text-xs font-body text-muted-foreground">days</span>
-                </div>
-              )}
-            </div>
-          </div>
-          {saveError && (
-            <p className="text-xs font-body" style={{ color: "#D4A843" }}>
-              Couldn't save — please try again.
-            </p>
-          )}
-          <Button
-            onClick={handleAddStageToExisting}
-            disabled={!newStage.goal.trim()}
-            className="w-full h-11 font-body"
-          >
-            Save Stage
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // ── Default: new habit form ───────────────────────────────────────────────
   return (
     <Card className="shadow-warm">
       <CardContent className="p-5 space-y-4">

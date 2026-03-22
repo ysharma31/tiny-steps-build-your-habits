@@ -13,34 +13,6 @@ const predefinedHabits = [
   { id: "ai-tools", name: "AI Tools", emoji: "🤖" },
 ];
 
-const habitStagePresets: Record<string, { goal: string; advanceAfterDays: number | null; isFinal: boolean }[]> = {
-  workout: [
-    { goal: "10 minute walk or light stretch", advanceAfterDays: 7, isFinal: false },
-    { goal: "20 minute workout", advanceAfterDays: 14, isFinal: false },
-    { goal: "45 minute workout", advanceAfterDays: null, isFinal: true },
-  ],
-  reading: [
-    { goal: "Read 5 pages", advanceAfterDays: 7, isFinal: false },
-    { goal: "Read 15 pages", advanceAfterDays: 14, isFinal: false },
-    { goal: "Read 30 pages", advanceAfterDays: null, isFinal: true },
-  ],
-  "screen-time": [
-    { goal: "No phone 30 min before bed", advanceAfterDays: 7, isFinal: false },
-    { goal: "No phone 1 hour before bed", advanceAfterDays: 14, isFinal: false },
-    { goal: "No phone 2 hours before bed", advanceAfterDays: null, isFinal: true },
-  ],
-  singing: [
-    { goal: "Hum or sing for 5 minutes", advanceAfterDays: 7, isFinal: false },
-    { goal: "Practice a song for 15 minutes", advanceAfterDays: 14, isFinal: false },
-    { goal: "Sing for 30 minutes", advanceAfterDays: null, isFinal: true },
-  ],
-  "ai-tools": [
-    { goal: "Use an AI tool for 10 minutes", advanceAfterDays: 7, isFinal: false },
-    { goal: "Build something with AI for 30 minutes", advanceAfterDays: 14, isFinal: false },
-    { goal: "Ship an AI-powered project", advanceAfterDays: null, isFinal: true },
-  ],
-};
-
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -95,14 +67,11 @@ const OnboardingPage = () => {
     const habitsToInsert = selectedHabits.map((habitId) => {
       const name = habitNameMap[habitId] || habitId;
       const categoryId = categoryMap.get(name.toLowerCase()) || null;
-      const stages = habitStagePresets[habitId] ?? [
-        { goal: `Daily ${name.toLowerCase()}`, advanceAfterDays: 5, isFinal: false },
-      ];
       return {
         user_id: userId,
         name,
         category_id: categoryId,
-        habit_stages: stages,
+        habit_stages: [{ goal: `Daily ${name.toLowerCase()}`, advanceAfterDays: 5, isFinal: false }],
       };
     });
 

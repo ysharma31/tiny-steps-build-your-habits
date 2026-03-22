@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Settings, ChevronRight } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import HabitCard from "@/components/HabitCard";
 import AddHabitForm from "@/components/AddHabitForm";
@@ -190,31 +190,6 @@ const DashboardPage = () => {
     setCelebrations((prev) => prev.filter((c) => c.habitId !== habitId));
   };
 
-  const handleRemove = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    // Delete all habit logs for this habit
-    await supabase
-      .from("habit_logs")
-      .delete()
-      .eq("habit_id", id)
-      .eq("user_id", session.user.id);
-
-    // Delete the habit itself
-    await supabase
-      .from("habits")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", session.user.id);
-
-    // Remove from local state immediately
-    setHabits((prev) => prev.filter((h) => h.id !== id));
-    setLoggedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-    setWeekLogs((prev) => prev.filter((l) => l.habit_id !== id));
-    setCelebrations((prev) => prev.filter((c) => c.habitId !== id));
-  };
-
   const completedToday = loggedIds.size;
   const progressPercent = habits.length > 0 ? (completedToday / habits.length) * 100 : 0;
 
@@ -287,15 +262,9 @@ const DashboardPage = () => {
       ))}
 
       {/* Habit cards */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-body font-medium text-foreground">Your habits</span>
-        <Link to="/history" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-body transition-colors">
-          View history <ChevronRight className="h-4 w-4" />
-        </Link>
-      </div>
       <div className="space-y-4 mb-6">
         {habitCards.map((habit) => (
-          <HabitCard key={habit.id} habit={habit} onLog={handleLog} onRemove={handleRemove} />
+          <HabitCard key={habit.id} habit={habit} onLog={handleLog} />
         ))}
       </div>
 
