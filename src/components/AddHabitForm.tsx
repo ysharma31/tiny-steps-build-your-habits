@@ -69,17 +69,28 @@ const AddHabitForm = ({ onClose }: AddHabitFormProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Check for duplicate
+    // Check for duplicate — fetch all active habits and do substring word matching
     const { data: existing } = await supabase
       .from("habits")
       .select("id, name")
       .eq("user_id", session.user.id)
-      .eq("archived", false)
-      .ilike("name", name.trim());
+      .eq("archived", false);
 
-    if (existing && existing.length > 0) {
-      setDuplicateId(existing[0].id);
-      setDuplicateName(existing[0].name);
+    const newNameLower = name.trim().toLowerCase();
+
+    const match = (existing ?? []).find((h) => {
+      const existingLower = h.name.toLowerCase();
+      // Exact match, or one name contains the other as a substring
+      return (
+        existingLower === newNameLower ||
+        existingLower.includes(newNameLower) ||
+        newNameLower.includes(existingLower)
+      );
+    });
+
+    if (match) {
+      setDuplicateId(match.id);
+      setDuplicateName(match.name);
       return;
     }
 
