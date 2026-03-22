@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check } from "lucide-react";
@@ -53,9 +54,11 @@ const HabitCard = ({ habit, onLog }: HabitProps) => {
       <CardContent className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
-          <h3 className="font-heading font-semibold text-foreground" style={{ fontSize: "18px" }}>
-            {habit.name}
-          </h3>
+          <Link to={`/habit/${habit.id}`} className="hover:underline">
+            <h3 className="font-heading font-semibold text-foreground" style={{ fontSize: "18px" }}>
+              {habit.name}
+            </h3>
+          </Link>
           {habit.streak > 0 && (
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-body font-medium whitespace-nowrap">
               🔥 {habit.streak} day streak
