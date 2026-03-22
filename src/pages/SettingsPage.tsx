@@ -229,7 +229,46 @@ const SettingsPage = () => {
 
             {habits.map((habit) => (
               <div key={habit.id} className="space-y-2">
-                <h3 className="text-sm font-heading font-semibold text-foreground">{habit.name}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-heading font-semibold text-foreground">{habit.name}</h3>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-heading">Delete "{habit.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription className="font-body">
+                          This will permanently delete this habit and all its history. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="font-body">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="font-body bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session) return;
+                            // Delete logs first, then habit
+                            await supabase.from("habit_logs").delete().eq("habit_id", habit.id).eq("user_id", session.user.id);
+                            await supabase.from("habits").delete().eq("id", habit.id).eq("user_id", session.user.id);
+                            setHabits((prev) => prev.filter((h) => h.id !== habit.id));
+                            setEditedStages((prev) => {
+                              const next = { ...prev };
+                              delete next[habit.id];
+                              return next;
+                            });
+                            toast({ title: "Deleted", description: `"${habit.name}" has been removed.` });
+                          }}
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
                 <div className="space-y-1.5 pl-2">
                   {(editedStages[habit.id] || habit.habit_stages).map((stage, idx) => (
                     <div key={idx} className="flex items-center gap-3">
