@@ -48,6 +48,9 @@ const SettingsPage = () => {
       if (profile) {
         setDisplayName(profile.display_name || "");
         setPhone(profile.phone_number || "");
+        setSmsEnabled(profile.notif_sms ?? false);
+        setBrowserEnabled(profile.notif_browser ?? false);
+        setInAppEnabled(profile.notif_inapp ?? false);
         if (profile.preferred_call_time) {
           setCallTime(profile.preferred_call_time.slice(0, 5));
         }
