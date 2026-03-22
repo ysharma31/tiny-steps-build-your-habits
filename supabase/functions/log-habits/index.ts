@@ -15,7 +15,8 @@ serve(async (req) => {
   let userId: string;
   let date: string;
   let habits: Array<{
-    habitId: string;
+    habitId?: string;
+    habit_id?: string;
     completed: boolean;
     notes?: string;
   }>;
@@ -55,7 +56,9 @@ serve(async (req) => {
 
   for (const habit of habits) {
     try {
-      const { habitId, completed, notes = "" } = habit;
+      const habitId = habit.habitId || habit.habit_id || "";
+      const { completed, notes = "" } = habit;
+      if (!habitId) throw new Error("Missing habitId");
 
       // Insert or upsert the habit log for this date
       const { error: logError } = await supabase
@@ -114,7 +117,7 @@ serve(async (req) => {
       results.push({ habitId, logged: true, streak: newStreak });
     } catch (err) {
       results.push({
-        habitId: habit.habitId,
+        habitId: habit.habitId || habit.habit_id || "",
         logged: false,
         streak: 0,
         error: err instanceof Error ? err.message : "Unknown error",
